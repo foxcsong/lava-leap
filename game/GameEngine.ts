@@ -228,24 +228,65 @@ export class GameEngine {
         const gravity = CONFIG.GRAVITY;
 
         this.distance += (moveX / (10 * CONFIG.GLOBAL_SCALE));
-        this.player.update(effectiveDt, gravity);
 
-        // 提升摄像机高度基准，保证跑道在移动端有更好的视角
-        const targetCameraY = this.player.y - this.canvas.height * 0.55;
-        const cameraSmooth = 0.12 * this.speedMultiplier;
-        this.cameraY += (targetCameraY - this.cameraY) * Math.min(0.3, cameraSmooth) * baseDt;
+        // --- 子步物理系统: 解决高速穿透 (Tunneling) 问题 ---
+        const SUB_STEPS = 4;
+        const stepDt = effectiveDt / SUB_STEPS;
+        const stepMoveX = moveX / SUB_STEPS;
 
-        this.platforms.forEach(p => p.x -= moveX);
-        this.gems.forEach(g => g.x -= moveX);
-        this.particles.forEach(p => {
-            p.update(effectiveDt);
-            p.x -= moveX;
-        });
+        let dead = false;
 
-        this.lastX -= moveX;
+        for (let s = 0; s < SUB_STEPS; s++) {
+            // A. 位置更新
+            this.player.update(stepDt, gravity);
+            this.platforms.forEach(p => p.x -= stepMoveX);
+            this.gems.forEach(g => g.x -= stepMoveX);
+            this.particles.forEach(p => {
+                p.update(stepDt);
+                p.x -= stepMoveX;
+            });
+            this.lastX -= stepMoveX;
 
-        if (this.player.isOnGround) {
-            if (Math.random() < 0.4) {
+            // B. 平台碰撞检测 (每个子步检测一次)
+            this.player.isOnGround = false;
+            for (const p of this.platforms) {
+                if (this.player.x < p.x + p.w &&
+                    this.player.x + this.player.size > p.x &&
+                    this.player.y < p.y + p.h &&
+                    this.player.y + this.player.size > p.y) {
+
+                    const overlapTop = (this.player.y + this.player.size) - p.y;
+                    const overlapBottom = (p.y + p.h) - this.player.y;
+                    const overlapLeft = (this.player.x + this.player.size) - p.x;
+                    const overlapRight = (p.x + p.w) - this.player.x;
+
+                    const minOverlap = Math.min(overlapTop, overlapBottom, overlapLeft, overlapRight);
+
+                    // 侧面撞墙判定
+                    if (minOverlap === overlapLeft && overlapTop > 10 * CONFIG.GLOBAL_SCALE && overlapBottom > 10 * CONFIG.GLOBAL_SCALE) {
+                        dead = true;
+                        this.shatterPlayer();
+                        break;
+                    }
+                    // 踩在地上
+                    else if (minOverlap === overlapTop) {
+                        this.player.y = p.y - this.player.size;
+                        this.player.vy = 0;
+                        this.player.resetJump();
+                        this.player.isOnGround = true;
+                    }
+                    // 撞到头
+                    else if (minOverlap === overlapBottom) {
+                        this.player.y = p.y + p.h;
+                        if (this.player.vy < 0) this.player.vy = 0;
+                        this.player.resetJump();
+                    }
+                }
+            }
+            if (dead) break;
+
+            // 跑动时产生粒子效果
+            if (this.player.isOnGround && Math.random() < 0.2) {
                 this.particles.push(new Particle(
                     this.player.x, this.player.y + this.player.size,
                     'rgba(255,255,255,0.4)',
@@ -254,44 +295,17 @@ export class GameEngine {
             }
         }
 
+        // --- 逻辑更新 (每帧执行一次) ---
+        // 提升摄像机高度基准，保证跑道在移动端有更好的视角
+        const targetCameraY = this.player.y - this.canvas.height * 0.55;
+        const cameraSmooth = 0.12 * this.speedMultiplier;
+        this.cameraY += (targetCameraY - this.cameraY) * Math.min(0.3, cameraSmooth) * baseDt;
+
         this.fillRoadBuffer();
 
         this.platforms = this.platforms.filter(p => p.x + p.w > -1000 * CONFIG.GLOBAL_SCALE);
         this.gems = this.gems.filter(g => g.x > -500 * CONFIG.GLOBAL_SCALE && !g.collected);
         this.particles = this.particles.filter(p => p.life > 0);
-
-        this.player.isOnGround = false;
-        let dead = false;
-
-        for (const p of this.platforms) {
-            if (this.player.x < p.x + p.w &&
-                this.player.x + this.player.size > p.x &&
-                this.player.y < p.y + p.h &&
-                this.player.y + this.player.size > p.y) {
-
-                const overlapTop = (this.player.y + this.player.size) - p.y;
-                const overlapBottom = (p.y + p.h) - this.player.y;
-                const overlapLeft = (this.player.x + this.player.size) - p.x;
-                const overlapRight = (p.x + p.w) - this.player.x;
-
-                const minOverlap = Math.min(overlapTop, overlapBottom, overlapLeft, overlapRight);
-
-                if (minOverlap === overlapLeft && overlapTop > 12 * CONFIG.GLOBAL_SCALE && overlapBottom > 12 * CONFIG.GLOBAL_SCALE) {
-                    dead = true;
-                    this.shatterPlayer();
-                    break;
-                } else if (minOverlap === overlapTop) {
-                    this.player.y = p.y - this.player.size;
-                    this.player.vy = 0;
-                    this.player.resetJump();
-                    this.player.isOnGround = true;
-                } else if (minOverlap === overlapBottom) {
-                    this.player.y = p.y + p.h;
-                    if (this.player.vy < 0) this.player.vy = 0;
-                    this.player.resetJump();
-                }
-            }
-        }
 
         for (const g of this.gems) {
             const hitZone = (g.type === GemType.LARGE ? 100 : 80) * CONFIG.GLOBAL_SCALE;
