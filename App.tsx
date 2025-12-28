@@ -12,6 +12,8 @@ const App: React.FC = () => {
   const [distance, setDistance] = useState(0);
   const [speedMult, setSpeedMult] = useState(1.0);
   const [selectedSkin, setSelectedSkin] = useState<PlayerSkin>(PlayerSkin.DEFAULT);
+  const [shareImage, setShareImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGameOver = useCallback((finalScore: number, finalDistance: number) => {
     setScore(finalScore);
@@ -90,6 +92,91 @@ const App: React.FC = () => {
     if (gameState === 'PLAYING') {
       engineRef.current?.togglePause();
       setIsPaused(prev => !prev);
+    }
+  };
+
+  const handleShare = async () => {
+    setIsGenerating(true);
+    try {
+      const canv = document.createElement('canvas');
+      const ctx = canv.getContext('2d');
+      if (!ctx) return;
+
+      // 海报尺寸 (标准竖向)
+      canv.width = 750;
+      canv.height = 1100;
+
+      // 1. 背景渐变
+      const grad = ctx.createLinearGradient(0, 0, 0, canv.height);
+      grad.addColorStop(0, '#111827');
+      grad.addColorStop(1, '#000000');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canv.width, canv.height);
+
+      // 2. 装饰边框/底纹
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+      ctx.lineWidth = 15;
+      ctx.strokeRect(30, 30, canv.width - 60, canv.height - 60);
+
+      // 3. 标题
+      ctx.fillStyle = '#f97316';
+      ctx.font = 'italic black 100px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('LAVA DASH', canv.width / 2, 180);
+
+      // 4. 用户寄语
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 44px sans-serif';
+      ctx.fillText('你真棒！我跑了这么远！', canv.width / 2, 280);
+
+      // 5. 分数面板
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.fillRect(100, 360, 550, 300);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(100, 360, 550, 300);
+
+      ctx.fillStyle = '#fbbf24'; // 里程颜色
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillText('总里程', canv.width / 2, 430);
+      ctx.font = 'bold 80px Courier New';
+      ctx.fillText(`${Math.floor(distance)}m`, canv.width / 2, 510);
+
+      ctx.fillStyle = '#22d3ee'; // 分数颜色
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillText('最终得分', canv.width / 2, 590);
+      ctx.font = 'bold 60px Courier New';
+      ctx.fillText(`${score}`, canv.width / 2, 650);
+
+      // 6. 二维码图片
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('https://lavaleap.2284.xyz')}&color=f97316&bgcolor=000000`;
+
+      const qrImage = new Image();
+      qrImage.crossOrigin = "anonymous";
+      qrImage.src = qrUrl;
+
+      await new Promise((resolve, reject) => {
+        qrImage.onload = resolve;
+        qrImage.onerror = reject;
+      });
+
+      // 绘制二维码容器
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(canv.width / 2 - 125, 750, 250, 250);
+      ctx.drawImage(qrImage, canv.width / 2 - 125, 750, 250, 250);
+
+      // 7. 引导文案
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '28px sans-serif';
+      ctx.fillText('长按识别二维码，挑战我的高分', canv.width / 2, 1040);
+
+      const dataUrl = canv.toDataURL('image/png');
+      setShareImage(dataUrl);
+    } catch (err) {
+      console.error('Failed to generate share image:', err);
+      alert('生成海报失败，请重试');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -258,7 +345,11 @@ const App: React.FC = () => {
         {gameState === 'GAMEOVER' && (
           <div className="absolute inset-0 bg-red-900/40 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 z-40">
             <div className="bg-slate-900/95 p-6 md:p-10 rounded-3xl border-4 border-orange-500 shadow-2xl flex flex-col items-center max-w-sm w-full animate-in zoom-in duration-300">
-              <h2 className="text-3xl font-black mb-4 text-orange-500 text-center uppercase tracking-tighter italic">GAME OVER</h2>
+              <h2 className="text-3xl font-black mb-2 text-orange-500 text-center uppercase tracking-tighter italic">GAME OVER</h2>
+              <div className="text-yellow-400 font-bold mb-6 text-sm md:text-base animate-pulse text-center">
+                你真棒！转发朋友圈秀出你的分数吧！
+              </div>
+
               <div className="w-full space-y-2 mb-6 text-xl">
                 <div className="flex justify-between border-b border-slate-700 pb-1">
                   <span>总里程</span>
@@ -271,20 +362,53 @@ const App: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-3 w-full">
-                <button
-                  onClick={startGame}
-                  onTouchEnd={(e) => { e.preventDefault(); startGame(); }}
-                  className="w-full py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-xl text-xl font-bold uppercase shadow-lg"
-                >
-                  再次挑战
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={startGame}
+                    onTouchEnd={(e) => { e.preventDefault(); startGame(); }}
+                    className="flex-1 py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-xl text-xl font-bold uppercase shadow-lg transform active:scale-95"
+                  >
+                    再来
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-500 transition-colors rounded-xl text-xl font-bold uppercase shadow-lg flex items-center justify-center gap-2 transform active:scale-95"
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? (
+                      <i className="fa-solid fa-spinner fa-spin"></i>
+                    ) : (
+                      <i className="fa-solid fa-share-nodes"></i>
+                    )}
+                    分享
+                  </button>
+                </div>
                 <button
                   onClick={goToMainMenu}
                   onTouchEnd={(e) => { e.preventDefault(); goToMainMenu(); }}
-                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-lg font-bold text-slate-300"
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-lg font-bold text-slate-300 transform active:scale-95"
                 >
                   返回主页
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 分享海报弹窗 */}
+        {shareImage && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[100] animate-in fade-in duration-300">
+            <div className="relative max-w-[90vw] max-h-[80vh] flex flex-col items-center">
+              <img src={shareImage} alt="Share Poster" className="w-full h-full object-contain rounded-lg shadow-2xl border-2 border-white/20" />
+              <button
+                onClick={() => setShareImage(null)}
+                className="absolute -top-4 -right-4 w-10 h-10 bg-red-500 text-white rounded-full shadow-xl flex items-center justify-center border-2 border-white"
+              >
+                <i className="fa-solid fa-xmark text-xl"></i>
+              </button>
+              <div className="mt-4 text-white text-center">
+                <p className="text-lg font-bold">海报已生成！</p>
+                <p className="text-sm text-slate-400">长按上方图片保存，或直接分享给好友</p>
               </div>
             </div>
           </div>
