@@ -261,7 +261,7 @@ const App: React.FC = () => {
             </h1>
             <p className="text-lg md:text-xl mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
 
-            <div className="bg-slate-900/90 p-5 md:p-6 rounded-2xl border border-slate-700 max-w-lg mb-6 backdrop-blur-md overflow-y-auto max-h-[40vh]">
+            <div className="bg-slate-900/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700 max-w-xl mb-6 backdrop-blur-md overflow-y-auto max-h-[50vh] md:max-h-[60vh] shadow-2xl transition-all">
               <h3 className="text-orange-400 font-bold mb-3 border-b border-slate-700 pb-1 text-lg flex justify-between items-center">
                 <span>游戏规则</span>
                 <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 md:hidden">
