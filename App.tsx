@@ -148,22 +148,39 @@ const App: React.FC = () => {
       ctx.font = 'bold 60px Courier New';
       ctx.fillText(`${score}`, canv.width / 2, 650);
 
-      // 6. 二维码图片
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('https://lavaleap.2284.xyz')}&color=f97316&bgcolor=000000`;
+      // 6. 二维码图片 - 切换到更稳定的 Google Charts API，并确保处理跨域
+      const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent('https://lavaleap.2284.xyz')}&chco=f97316`;
 
       const qrImage = new Image();
       qrImage.crossOrigin = "anonymous";
-      qrImage.src = qrUrl;
 
-      await new Promise((resolve, reject) => {
-        qrImage.onload = resolve;
-        qrImage.onerror = reject;
+      const loadQrPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('QR code load timeout'));
+        }, 8000); // 8秒超时
+
+        qrImage.onload = () => {
+          clearTimeout(timeout);
+          resolve(true);
+        };
+        qrImage.onerror = (e) => {
+          clearTimeout(timeout);
+          console.error('QR load error event:', e);
+          reject(new Error('QR code image failed to load'));
+        };
       });
 
+      qrImage.src = qrUrl;
+      await loadQrPromise;
+
       // 绘制二维码容器
+      ctx.save();
       ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
       ctx.fillRect(canv.width / 2 - 125, 750, 250, 250);
       ctx.drawImage(qrImage, canv.width / 2 - 125, 750, 250, 250);
+      ctx.restore();
 
       // 7. 引导文案
       ctx.fillStyle = '#94a3b8';
