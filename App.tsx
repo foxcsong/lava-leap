@@ -15,6 +15,8 @@ const App: React.FC = () => {
   const [speedMult, setSpeedMult] = useState(1.0);
   const [selectedSkin, setSelectedSkin] = useState<PlayerSkin>(PlayerSkin.DEFAULT);
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.NORMAL);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const rulesContainerRef = useRef<HTMLDivElement>(null);
 
   const handleGameOver = useCallback((finalScore: number, finalDistance: number, finalMaxSpeed: number) => {
     setScore(finalScore);
@@ -166,6 +168,24 @@ const App: React.FC = () => {
     };
   }, [gameState, isPaused, gameMode]);
 
+  // 检测规则框是否溢出，以决定是否显示滚动提示
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (rulesContainerRef.current) {
+        const { scrollHeight, clientHeight } = rulesContainerRef.current;
+        setShowScrollHint(scrollHeight > clientHeight + 5); // 增加 5px 容差
+      }
+    };
+
+    if (gameState === 'START' && rulesContainerRef.current) {
+      checkOverflow();
+      // 使用 ResizeObserver 监听容器或内容尺寸变化
+      const observer = new ResizeObserver(checkOverflow);
+      observer.observe(rulesContainerRef.current);
+      return () => observer.disconnect();
+    }
+  }, [gameState, gameMode]);
+
   return (
     <div className="w-full h-full bg-black flex items-center justify-center overflow-hidden">
       <div className="relative w-full h-full landscape:w-[92vw] landscape:h-[85vh] bg-black shadow-2xl overflow-hidden font-sans">
@@ -262,7 +282,10 @@ const App: React.FC = () => {
             <p className="text-sm md:text-xl mb-3 md:mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
 
             <div className="relative group max-w-xl w-full mb-4 px-2">
-              <div className="bg-slate-900/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700 backdrop-blur-md overflow-y-auto max-h-[45vh] md:max-h-[55vh] shadow-2xl transition-all custom-scrollbar relative">
+              <div
+                ref={rulesContainerRef}
+                className="bg-slate-900/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700 backdrop-blur-md overflow-y-auto max-h-[32vh] md:max-h-[55vh] shadow-2xl transition-all custom-scrollbar relative"
+              >
                 <h3 className="text-orange-400 font-bold mb-3 border-b border-slate-700 pb-1 text-base md:text-lg flex justify-between items-center sticky top-0 bg-slate-900/40 backdrop-blur-sm z-10">
                   <span>游戏规则</span>
                   <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 md:hidden">
@@ -305,12 +328,16 @@ const App: React.FC = () => {
                   </li>
                 </ul>
               </div>
-              {/* 滚动指引提示 */}
-              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/80 to-transparent pointer-events-none rounded-b-3xl"></div>
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-slate-500 flex flex-col items-center animate-bounce-subtle pointer-events-none opacity-80">
-                <span className="uppercase tracking-widest font-black">Scroll</span>
-                <i className="fa-solid fa-chevron-down mt-0.5"></i>
-              </div>
+              {/* 仅在溢出时显示滚动指引提示 */}
+              {showScrollHint && (
+                <>
+                  <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none rounded-b-3xl"></div>
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-orange-500/80 flex flex-col items-center animate-bounce-subtle pointer-events-none z-20">
+                    <span className="uppercase tracking-widest font-black text-[8px]">下滑查看更多</span>
+                    <i className="fa-solid fa-chevron-down text-[8px]"></i>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-4">
