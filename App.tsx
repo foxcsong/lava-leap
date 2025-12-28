@@ -51,6 +51,13 @@ const App: React.FC = () => {
   };
 
   const startGame = () => {
+    // 强制请求全屏获得最佳体验
+    if (!document.fullscreenElement) {
+      void document.documentElement.requestFullscreen().catch(() => {
+        console.warn('Fullscreen request failed');
+      });
+    }
+
     // 立即切换状态，确保 UI 响应
     setGameState('PLAYING');
     setIsPaused(false);
@@ -116,9 +123,9 @@ const App: React.FC = () => {
   }, [gameState, isPaused]);
 
   return (
-    <div className="w-screen h-[100dvh] bg-zinc-950 flex items-center justify-center p-0 landscape:p-4 overflow-hidden">
-      {/* 游戏安全容器: 在横屏时缩小并居中，避开浏览器 UI 遮挡 */}
-      <div className="relative w-full h-full landscape:max-w-[92vw] landscape:max-h-[85vh] bg-black shadow-2xl overflow-hidden rounded-none landscape:rounded-xl border-0 landscape:border-2 landscape:border-white/10 font-sans">
+    <div className="w-full h-full bg-black flex items-center justify-center overflow-hidden">
+      {/* 游戏安全容器: 在正常横屏时提供边距，在强制旋转时充满可用空间 */}
+      <div className="relative w-full h-full landscape:w-[92vw] landscape:h-[85vh] bg-black shadow-2xl overflow-hidden font-sans">
 
         {/* 画布 */}
         <canvas
