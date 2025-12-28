@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GameEngine } from './game/GameEngine';
-import { PlayerSkin } from './game/Entities';
+import { PlayerSkin, GameMode, ColorType } from './game/Entities';
 import { sounds } from './game/SoundManager';
 
 const App: React.FC = () => {
@@ -14,6 +13,7 @@ const App: React.FC = () => {
   const [maxSpeed, setMaxSpeed] = useState(1.0);
   const [speedMult, setSpeedMult] = useState(1.0);
   const [selectedSkin, setSelectedSkin] = useState<PlayerSkin>(PlayerSkin.DEFAULT);
+  const [gameMode, setGameMode] = useState<GameMode>(GameMode.NORMAL);
 
   const handleGameOver = useCallback((finalScore: number, finalDistance: number, finalMaxSpeed: number) => {
     setScore(finalScore);
@@ -35,7 +35,8 @@ const App: React.FC = () => {
         canvasRef.current,
         handleGameOver,
         handleUpdateStats,
-        selectedSkin
+        selectedSkin,
+        gameMode
       );
     }
     return () => {
@@ -50,6 +51,13 @@ const App: React.FC = () => {
       engineRef.current.setSkin(selectedSkin);
     }
   }, [selectedSkin]);
+
+  // 同步模式
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setMode(gameMode);
+    }
+  }, [gameMode]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -69,11 +77,9 @@ const App: React.FC = () => {
 
   const startGame = () => {
     resumeAudioContext();
-    // 立即切换状态，确保 UI 响应，防止被请求全屏可能产生的阻塞
     setGameState('PLAYING');
     setIsPaused(false);
 
-    // 尝试重置引擎
     if (engineRef.current) {
       try {
         engineRef.current.reset();
@@ -82,7 +88,6 @@ const App: React.FC = () => {
       }
     }
 
-    // 在状态切换后再异步请求全屏（仅在有交互时有效）
     if (!document.fullscreenElement) {
       void document.documentElement.requestFullscreen().catch(() => {
         console.warn('Fullscreen request failed');
@@ -103,9 +108,16 @@ const App: React.FC = () => {
 
   const handleJumpPress = () => {
     if (gameState === 'PLAYING' && !isPaused) {
-      // Resume AudioContext on user interaction
       resumeAudioContext();
       engineRef.current?.startJump();
+    }
+  };
+
+  const handleColorShift = () => {
+    if (gameState === 'PLAYING' && !isPaused) {
+      resumeAudioContext();
+      sounds.playColorShift();
+      engineRef.current?.switchPlayerColor();
     }
   };
 
@@ -144,27 +156,25 @@ const App: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-black flex items-center justify-center overflow-hidden">
-      {/* 游戏安全容器: 在正常横屏时提供边距，在强制旋转时充满可用空间 */}
       <div className="relative w-full h-full landscape:w-[92vw] landscape:h-[85vh] bg-black shadow-2xl overflow-hidden font-sans">
-
-        {/* 画布 */}
         <canvas
           ref={canvasRef}
-          className={`w-full h-full block ${gameState === 'START' ? 'invisible' : 'visible'}`}
+          className={`w-full h-full block ${gameState === 'START' ? 'invisible' : 'visible'} ${gameMode === GameMode.COLOR_SHIFT ? 'bg-slate-950' : ''}`}
         />
 
-        {/* 统计信息覆盖层 */}
         <div className="absolute top-4 right-4 text-white text-right drop-shadow-lg pointer-events-none select-none z-10">
           {gameState !== 'START' && (
             <>
               <div className="text-xl font-bold">里程: <span className="text-yellow-400">{Math.floor(distance)}m</span></div>
               <div className="text-xl font-bold">分数: <span className="text-cyan-400">{score}</span></div>
               <div className="text-lg font-bold">速度: <span className={`${speedMult > 2.5 ? 'text-red-500 animate-pulse' : 'text-orange-400'}`}>{(speedMult * 100).toFixed(0)}%</span></div>
+              {gameMode === GameMode.COLOR_SHIFT && (
+                <div className="mt-1 px-2 py-0.5 bg-indigo-600/40 border border-indigo-400/50 rounded text-xs font-black uppercase tracking-widest text-indigo-100"> Color Shift Mode </div>
+              )}
             </>
           )}
         </div>
 
-        {/* 暂停按钮 */}
         {gameState === 'PLAYING' && (
           <button
             onClick={togglePause}
@@ -176,7 +186,6 @@ const App: React.FC = () => {
 
         {gameState === 'START' && (
           <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white p-4 z-50">
-
             {/* 角色选择 - 左上角 */}
             <div className="absolute top-4 left-4 z-[60] flex flex-col gap-2">
               <span className="text-xs text-slate-400 font-bold uppercase tracking-widest ml-1">选择角色</span>
@@ -212,6 +221,29 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* 模式选择 - 右上角 */}
+            <div className="absolute top-4 right-4 z-[60] flex flex-col items-end gap-2">
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest mr-1">游戏模式</span>
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-sm shadow-xl">
+                {[
+                  { id: GameMode.NORMAL, label: '普通', icon: 'fa-cube' },
+                  { id: GameMode.COLOR_SHIFT, label: '变色', icon: 'fa-palette' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setGameMode(m.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${gameMode === m.id
+                      ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)] scale-105'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                    <i className={`fa-solid ${m.icon}`}></i>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <h1 className="text-5xl md:text-7xl font-black mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
               LAVA DASH
             </h1>
@@ -227,8 +259,19 @@ const App: React.FC = () => {
               <ul className="text-xs md:text-sm space-y-2 md:space-y-3 text-slate-200">
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-keyboard mt-1 text-cyan-400"></i>
-                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">空格</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">跳跃按钮</span> 控制高度，支持 <span className="text-cyan-400 font-bold">二段跳</span>。</span>
+                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">右键</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">跳跃按钮</span> 控制高度，支持二段跳。</span>
                 </li>
+                {gameMode === GameMode.COLOR_SHIFT ? (
+                  <li className="flex items-start gap-3 border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/10">
+                    <i className="fa-solid fa-palette mt-1 text-indigo-400"></i>
+                    <span>在该模式下，<span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">左键</span> 将变为 <span className="text-indigo-400 font-bold uppercase">变色</span>。角色颜色必须与踏上的平台颜色一致。</span>
+                  </li>
+                ) : (
+                  <li className="flex items-start gap-3">
+                    <i className="fa-solid fa-mouse mt-1 text-slate-400"></i>
+                    <span>两边的按钮都可以进行跳跃，适合双手操作。</span>
+                  </li>
+                )}
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-triangle-exclamation mt-1 text-red-500"></i>
                   <span>碰到 <span className="text-red-500 font-bold">岩浆</span> 或撞到平台 <span className="text-red-500 font-bold">侧面</span> 会立即失败。</span>
@@ -237,31 +280,21 @@ const App: React.FC = () => {
                   <i className="fa-solid fa-gem mt-1 text-cyan-300"></i>
                   <span><span className="text-cyan-300">蓝色宝石</span> 加分，<span className="text-purple-400 font-bold">彩色大宝石</span> 提供巨额积分。</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <i className="fa-solid fa-caret-down mt-1 text-red-400"></i>
-                  <span>速度极快时会出现 <span className="text-red-400 font-bold">红色减速宝石</span>，吃掉可降低移动速度。</span>
-                </li>
               </ul>
             </div>
 
             <div className="flex flex-col items-center gap-4">
               <button
                 onClick={startGame}
-                // 在微信强制旋转模式下，有时候 touch 事件更可靠
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  // 不调用 preventDefault 以便 onClick 也能触发（或二选一）
-                }}
+                onTouchStart={(e) => { e.stopPropagation(); }}
                 className="px-12 py-3 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95 touch-manipulation z-[70] cursor-pointer"
               >
                 立刻开跑
               </button>
-
               <div className="flex items-center gap-2 text-slate-400 text-xs mt-2 animate-pulse overflow-hidden bg-black/40 px-3 py-1 rounded-full border border-slate-700">
                 <i className="fa-solid fa-sync fa-spin"></i>
                 <span>建议锁定屏幕自动旋转，获得最佳全屏体验</span>
               </div>
-
               <div className="mt-8 text-slate-500 text-[10px] md:text-xs font-medium tracking-widest uppercase">
                 开发者：高阶方陈（Nick）
               </div>
@@ -270,13 +303,12 @@ const App: React.FC = () => {
         )}
 
         {gameState === 'GAMEOVER' && (
-          <div className="absolute inset-0 bg-red-900/40 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 z-40">
+          <div className="absolute inset-0 bg-red-900/40 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 z-[100] animate-in fade-in duration-300">
             <div className="bg-slate-900/95 p-6 md:p-10 rounded-3xl border-4 border-orange-500 shadow-2xl flex flex-col items-center max-w-sm w-full animate-in zoom-in duration-300">
               <h2 className="text-3xl font-black mb-2 text-orange-500 text-center uppercase tracking-tighter italic">GAME OVER</h2>
               <div className="text-yellow-400 font-bold mb-6 text-sm md:text-base animate-pulse text-center">
-                你真棒！转发朋友圈秀出你的分数吧！
+                你真棒！我跑了这么远！
               </div>
-
               <div className="w-full space-y-2 mb-6 text-xl">
                 <div className="flex justify-between border-b border-slate-700 pb-1">
                   <span>总里程</span>
@@ -291,7 +323,6 @@ const App: React.FC = () => {
                   <span className="font-mono text-pink-400">{maxSpeed.toFixed(2)}x</span>
                 </div>
               </div>
-
               <div className="flex flex-col gap-3 w-full">
                 <button
                   onClick={startGame}
@@ -314,18 +345,20 @@ const App: React.FC = () => {
 
         {gameState === 'PLAYING' && (
           <>
-            {/* 左侧跳跃键 (适配左撇子) */}
+            {/* 左侧功能键 */}
             <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 pointer-events-none z-30">
               <button
-                onMouseDown={handleJumpPress}
-                onMouseUp={handleJumpRelease}
-                onMouseLeave={handleJumpRelease}
-                onTouchStart={(e) => { e.preventDefault(); handleJumpPress(); }}
-                onTouchEnd={(e) => { e.preventDefault(); handleJumpRelease(); }}
-                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none ${isPaused ? 'opacity-20' : ''}`}
+                onMouseDown={(e) => { e.preventDefault(); gameMode === GameMode.COLOR_SHIFT ? handleColorShift() : handleJumpPress(); }}
+                onMouseUp={(e) => { e.preventDefault(); if (gameMode !== GameMode.COLOR_SHIFT) handleJumpRelease(); }}
+                onMouseLeave={(e) => { e.preventDefault(); if (gameMode !== GameMode.COLOR_SHIFT) handleJumpRelease(); }}
+                onTouchStart={(e) => { e.preventDefault(); gameMode === GameMode.COLOR_SHIFT ? handleColorShift() : handleJumpPress(); }}
+                onTouchEnd={(e) => { e.preventDefault(); if (gameMode !== GameMode.COLOR_SHIFT) handleJumpRelease(); }}
+                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 border-4 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none active:scale-95 ${gameMode === GameMode.COLOR_SHIFT ? 'border-indigo-400 bg-indigo-600/30' : 'border-white/30 bg-white/10'} ${isPaused ? 'opacity-20' : ''}`}
               >
-                <i className="fa-solid fa-angles-up text-2xl md:text-3xl mb-1"></i>
-                <span className="text-xs md:text-xl font-black uppercase tracking-widest">跳跃</span>
+                <i className={`fa-solid ${gameMode === GameMode.COLOR_SHIFT ? 'fa-palette' : 'fa-angles-up'} text-2xl md:text-3xl mb-1`}></i>
+                <span className="text-xs md:text-xl font-black uppercase tracking-widest">
+                  {gameMode === GameMode.COLOR_SHIFT ? '变色' : '跳跃'}
+                </span>
               </button>
             </div>
 
@@ -337,7 +370,7 @@ const App: React.FC = () => {
                 onMouseLeave={handleJumpRelease}
                 onTouchStart={(e) => { e.preventDefault(); handleJumpPress(); }}
                 onTouchEnd={(e) => { e.preventDefault(); handleJumpRelease(); }}
-                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none ${isPaused ? 'opacity-20' : ''}`}
+                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none active:scale-95 ${isPaused ? 'opacity-20' : ''}`}
               >
                 <i className="fa-solid fa-angles-up text-2xl md:text-3xl mb-1"></i>
                 <span className="text-xs md:text-xl font-black uppercase tracking-widest">跳跃</span>

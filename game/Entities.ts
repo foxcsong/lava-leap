@@ -13,6 +13,17 @@ export enum PlayerSkin {
     CHICKEN = 'CHICKEN'
 }
 
+export enum GameMode {
+    NORMAL,
+    COLOR_SHIFT
+}
+
+export enum ColorType {
+    NONE,
+    RED,
+    BLUE
+}
+
 export class Player {
     public x: number = 0;
     public y: number = 0;
@@ -24,13 +35,21 @@ export class Player {
     public isOnGround: boolean = false;
     private hasReleasedSinceLastJump: boolean = true;
     public skin: PlayerSkin = PlayerSkin.DEFAULT;
+    public mode: GameMode = GameMode.NORMAL;
+    public colorType: ColorType = ColorType.NONE;
     private animationFrame: number = 0;
 
-    constructor(startX: number, startY: number, skin: PlayerSkin = PlayerSkin.DEFAULT) {
+    constructor(startX: number, startY: number, skin: PlayerSkin = PlayerSkin.DEFAULT, mode: GameMode = GameMode.NORMAL) {
         this.x = startX;
         this.y = startY;
         this.skin = skin;
+        this.mode = mode;
         this.updateSize();
+    }
+
+    public switchColor() {
+        if (this.mode !== GameMode.COLOR_SHIFT) return;
+        this.colorType = this.colorType === ColorType.RED ? ColorType.BLUE : ColorType.RED;
     }
 
     public updateSize() {
@@ -146,27 +165,55 @@ export class Player {
             ctx.fillRect(-s / 2 - 4, -s / 6, s / 4, s / 3);
         }
 
+        // 变色模式下的颜色叠加层 (蒙版效果)
+        if (this.mode === GameMode.COLOR_SHIFT) {
+            ctx.scale(1 / stretchX, 1 / stretchY); // 抵消缩放，使蒙版覆盖整个区域
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.fillStyle = this.colorType === ColorType.RED ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+            ctx.fillRect(-this.size * 2, -this.size * 2, this.size * 4, this.size * 4);
+
+            // 外框强化
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = this.colorType === ColorType.RED ? '#ef4444' : '#3b82f6';
+            ctx.lineWidth = 4 * CONFIG.GLOBAL_SCALE;
+            ctx.strokeRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        }
+
         ctx.restore();
     }
 }
 
 export class Platform {
     public h: number = 44;
-    constructor(public x: number, public w: number, public y: number) {
+    constructor(
+        public x: number,
+        public w: number,
+        public y: number,
+        public colorType: ColorType = ColorType.NONE
+    ) {
         this.h = 44 * CONFIG.GLOBAL_SCALE;
     }
 
     public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
         const drawY = this.y - cameraY;
         const grad = ctx.createLinearGradient(this.x, drawY, this.x, drawY + this.h);
-        grad.addColorStop(0, '#475569');
-        grad.addColorStop(0.5, '#334155');
-        grad.addColorStop(1, '#1e293b');
+
+        if (this.colorType === ColorType.RED) {
+            grad.addColorStop(0, '#ef4444');
+            grad.addColorStop(1, '#991b1b');
+        } else if (this.colorType === ColorType.BLUE) {
+            grad.addColorStop(0, '#3b82f6');
+            grad.addColorStop(1, '#1e3a8a');
+        } else {
+            grad.addColorStop(0, '#475569');
+            grad.addColorStop(0.5, '#334155');
+            grad.addColorStop(1, '#1e293b');
+        }
 
         ctx.fillStyle = grad;
         ctx.fillRect(this.x, drawY, this.w, this.h);
 
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = this.colorType === ColorType.NONE ? '#94a3b8' : 'rgba(255,255,255,0.4)';
         ctx.fillRect(this.x, drawY, this.w, 6 * CONFIG.GLOBAL_SCALE);
 
         ctx.strokeStyle = '#64748b';

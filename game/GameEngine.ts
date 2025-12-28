@@ -1,6 +1,6 @@
 
 import { CONFIG } from './Config';
-import { Player, Platform, Gem, Particle, GemType, PlayerSkin } from './Entities';
+import { Player, Platform, Gem, Particle, GemType, PlayerSkin, GameMode, ColorType } from './Entities';
 import { sounds } from './SoundManager';
 
 export class GameEngine {
@@ -22,6 +22,7 @@ export class GameEngine {
     private isPaused: boolean = false;
     private maxSpeedReached: number = 1.0;
     private skin: PlayerSkin = PlayerSkin.DEFAULT;
+    private mode: GameMode = GameMode.NORMAL;
 
     private cameraY: number = 0;
 
@@ -32,15 +33,17 @@ export class GameEngine {
         canvas: HTMLCanvasElement,
         private onGameOver: (score: number, distance: number, maxSpeed: number) => void,
         private onUpdateStats: (score: number, distance: number, speedMult: number) => void,
-        initialSkin: PlayerSkin = PlayerSkin.DEFAULT
+        initialSkin: PlayerSkin = PlayerSkin.DEFAULT,
+        initialMode: GameMode = GameMode.NORMAL
     ) {
         this.canvas = canvas;
         this.skin = initialSkin;
+        this.mode = initialMode;
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not get canvas context');
         this.ctx = ctx;
 
-        this.player = new Player(this.canvas.clientWidth * 0.3, this.canvas.clientHeight / 2, this.skin);
+        this.player = new Player(this.canvas.clientWidth * 0.3, this.canvas.clientHeight / 2, this.skin, this.mode);
         this.resize();
         window.addEventListener('resize', this.resize);
     }
@@ -48,6 +51,15 @@ export class GameEngine {
     public setSkin(skin: PlayerSkin) {
         this.skin = skin;
         if (this.player) this.player.skin = skin;
+    }
+
+    public setMode(mode: GameMode) {
+        this.mode = mode;
+        if (this.player) this.player.mode = mode;
+    }
+
+    public switchPlayerColor() {
+        if (this.player) this.player.switchColor();
     }
 
     private resize = () => {
@@ -111,13 +123,22 @@ export class GameEngine {
         const startX = -1000 * CONFIG.GLOBAL_SCALE;
         const startWidth = 3500 * CONFIG.GLOBAL_SCALE;
         const startY = CONFIG.GROUND_Y;
-        const startPlatform = new Platform(startX, startWidth, startY);
+        // 变色模式下，首张平台的颜色决定玩家初始颜色
+        let startColor = ColorType.NONE;
+        if (this.mode === GameMode.COLOR_SHIFT) {
+            startColor = Math.random() > 0.5 ? ColorType.RED : ColorType.BLUE;
+        }
+
+        const startPlatform = new Platform(startX, startWidth, startY, startColor);
         this.platforms.push(startPlatform);
 
         this.lastX = startX + startWidth;
         this.lastY = startY;
 
-        this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE, this.skin);
+        this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE, this.skin, this.mode);
+        if (this.mode === GameMode.COLOR_SHIFT) {
+            this.player.colorType = startColor;
+        }
         this.player.vy = 0;
         this.player.resetJump();
 
@@ -154,7 +175,12 @@ export class GameEngine {
                 const nextY = Math.max(minY, Math.min(maxY, this.lastY + diffY));
                 const width = CONFIG.MIN_PLATFORM_WIDTH + Math.random() * 600 * CONFIG.GLOBAL_SCALE;
 
-                const p = new Platform(this.lastX + gap, width, nextY);
+                let pColor = ColorType.NONE;
+                if (this.mode === GameMode.COLOR_SHIFT) {
+                    pColor = Math.random() > 0.5 ? ColorType.RED : ColorType.BLUE;
+                }
+
+                const p = new Platform(this.lastX + gap, width, nextY, pColor);
                 this.platforms.push(p);
                 this.addGemsToPlatform(p);
 
@@ -169,8 +195,15 @@ export class GameEngine {
                 let centerY = this.lastY + (Math.random() - 0.5) * 200 * CONFIG.GLOBAL_SCALE;
                 centerY = Math.max(minY + 300 * CONFIG.GLOBAL_SCALE, Math.min(maxY - 300 * CONFIG.GLOBAL_SCALE, centerY));
 
-                const pHigh = new Platform(this.lastX + baseGap, widthHigh, centerY - splitYDiff / 2);
-                const pLow = new Platform(this.lastX + baseGap + Math.random() * 150 * CONFIG.GLOBAL_SCALE, widthLow, centerY + splitYDiff / 2);
+                let pHighColor = ColorType.NONE;
+                let pLowColor = ColorType.NONE;
+                if (this.mode === GameMode.COLOR_SHIFT) {
+                    pHighColor = Math.random() > 0.5 ? ColorType.RED : ColorType.BLUE;
+                    pLowColor = Math.random() > 0.5 ? ColorType.RED : ColorType.BLUE;
+                }
+
+                const pHigh = new Platform(this.lastX + baseGap, widthHigh, centerY - splitYDiff / 2, pHighColor);
+                const pLow = new Platform(this.lastX + baseGap + Math.random() * 150 * CONFIG.GLOBAL_SCALE, widthLow, centerY + splitYDiff / 2, pLowColor);
 
                 this.platforms.push(pHigh, pLow);
                 this.addGemsToPlatform(pHigh);
@@ -225,7 +258,11 @@ export class GameEngine {
         const baseDt = Math.min(deltaTime / 16.67, 2.5);
 
         const effectiveDistanceForSpeed = Math.max(0, this.distance - this.speedPenalty);
-        this.speedMultiplier = Math.min(4.5, 1 + (effectiveDistanceForSpeed / (2800)));
+        if (this.mode === GameMode.COLOR_SHIFT) {
+            this.speedMultiplier = 1.5; // 变色模式恒定 1.5x 速度
+        } else {
+            this.speedMultiplier = Math.min(4.5, 1 + (effectiveDistanceForSpeed / (2800)));
+        }
         this.maxSpeedReached = Math.max(this.maxSpeedReached, this.speedMultiplier);
 
         const effectiveDt = baseDt * this.speedMultiplier;
@@ -275,6 +312,13 @@ export class GameEngine {
                     }
                     // 踩在地上
                     else if (minOverlap === overlapTop) {
+                        // 变色模式颜色校验
+                        if (this.mode === GameMode.COLOR_SHIFT && p.colorType !== ColorType.NONE && p.colorType !== this.player.colorType) {
+                            dead = true;
+                            this.shatterPlayer();
+                            break;
+                        }
+
                         this.player.y = p.y - this.player.size;
                         this.player.vy = 0;
                         this.player.resetJump();
@@ -282,6 +326,13 @@ export class GameEngine {
                     }
                     // 撞到头
                     else if (minOverlap === overlapBottom) {
+                        // 变色模式颜色校验 (撞天花板也要算)
+                        if (this.mode === GameMode.COLOR_SHIFT && p.colorType !== ColorType.NONE && p.colorType !== this.player.colorType) {
+                            dead = true;
+                            this.shatterPlayer();
+                            break;
+                        }
+
                         this.player.y = p.y + p.h;
                         if (this.player.vy < 0) this.player.vy = 0;
                         this.player.resetJump();

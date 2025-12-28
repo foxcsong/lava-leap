@@ -53,6 +53,10 @@ export class SoundManager {
     public playSlow() {
         this.playTone(400, 'triangle', 0.3, 0.1, 100);
     }
+
+    public playColorShift() {
+        this.playTone(800, 'square', 0.1, 0.05, 1200);
+    }
 }
 
 export const sounds = new SoundManager();
