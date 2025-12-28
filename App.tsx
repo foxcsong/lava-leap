@@ -51,15 +51,17 @@ const App: React.FC = () => {
   };
 
   const startGame = () => {
-    // 异步尝试全屏，但不等待其结果
-    if (!document.fullscreenElement) {
-      void document.documentElement.requestFullscreen().catch(() => { });
-    }
+    // 立即切换状态，确保 UI 响应
+    setGameState('PLAYING');
+    setIsPaused(false);
 
+    // 尝试重置引擎
     if (engineRef.current) {
-      engineRef.current.reset();
-      setGameState('PLAYING');
-      setIsPaused(false);
+      try {
+        engineRef.current.reset();
+      } catch (err) {
+        console.error('Engine reset failed:', err);
+      }
     }
   };
 
@@ -182,7 +184,11 @@ const App: React.FC = () => {
           <div className="flex items-center gap-4 mb-8">
             <button
               onClick={startGame}
-              className="px-12 py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95"
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                startGame();
+              }}
+              className="px-12 py-4 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95 touch-manipulation z-[60]"
             >
               立刻开跑
             </button>
