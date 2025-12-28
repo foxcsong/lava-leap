@@ -1,0 +1,5 @@
+{
+  "name": "Lava Leap: Cubic Dash",
+  "description": "A high-speed square-based parkour game where you leap across floating platforms to avoid the rising lava. Features procedural generation, variable jump heights, double jumps, and particle effects.",
+  "requestFramePermissions": []
+}

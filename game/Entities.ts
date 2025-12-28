@@ -1,0 +1,216 @@
+
+import { CONFIG } from './Config';
+
+export enum GemType {
+    SMALL,
+    LARGE,
+    SLOW
+}
+
+export class Player {
+    public x: number = 0;
+    public y: number = 0;
+    public size: number = 56; 
+    public vy: number = 0;
+    public jumpCount: number = 0;
+    public isHoldingJump: boolean = false;
+    public jumpTimer: number = 0;
+    public isOnGround: boolean = false;
+    private hasReleasedSinceLastJump: boolean = true;
+
+    constructor(startX: number, startY: number) {
+        this.x = startX;
+        this.y = startY;
+        this.updateSize();
+    }
+
+    public updateSize() {
+        this.size = 56 * CONFIG.GLOBAL_SCALE;
+    }
+
+    public update(dt: number, gravity: number) {
+        this.vy += gravity * dt;
+
+        if (this.isHoldingJump && this.jumpTimer > 0) {
+            this.vy -= CONFIG.JUMP_FORCE_HOLD * dt;
+            this.jumpTimer -= dt;
+        }
+
+        this.y += this.vy * dt;
+    }
+
+    public startJump() {
+        if (this.jumpCount < CONFIG.MAX_JUMPS && this.hasReleasedSinceLastJump) {
+            this.vy = CONFIG.JUMP_FORCE_INITIAL;
+            this.jumpCount++;
+            this.isHoldingJump = true;
+            this.jumpTimer = CONFIG.JUMP_HOLD_MAX_TIME;
+            this.hasReleasedSinceLastJump = false;
+        }
+    }
+
+    public stopJump() {
+        this.isHoldingJump = false;
+        this.jumpTimer = 0;
+        this.hasReleasedSinceLastJump = true;
+    }
+
+    public resetJump() {
+        this.jumpCount = 0;
+        this.isHoldingJump = false; 
+        this.jumpTimer = 0;
+    }
+
+    public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
+        ctx.save();
+        ctx.fillStyle = CONFIG.COLORS.PLAYER;
+        ctx.shadowBlur = 25 * CONFIG.GLOBAL_SCALE; 
+        ctx.shadowColor = CONFIG.COLORS.PLAYER;
+        
+        ctx.translate(this.x + this.size/2, this.y - cameraY + this.size/2);
+        ctx.rotate(this.vy * 0.015 / CONFIG.GLOBAL_SCALE);
+        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+        
+        ctx.fillStyle = '#fff';
+        const eyeSize = 12 * CONFIG.GLOBAL_SCALE;
+        ctx.fillRect(this.size/6, -this.size/3, eyeSize, eyeSize);
+        
+        ctx.restore();
+    }
+}
+
+export class Platform {
+    public h: number = 44; 
+    constructor(public x: number, public w: number, public y: number) {
+        this.h = 44 * CONFIG.GLOBAL_SCALE;
+    }
+
+    public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
+        const drawY = this.y - cameraY;
+        const grad = ctx.createLinearGradient(this.x, drawY, this.x, drawY + this.h);
+        grad.addColorStop(0, '#475569');
+        grad.addColorStop(0.5, '#334155');
+        grad.addColorStop(1, '#1e293b');
+        
+        ctx.fillStyle = grad;
+        ctx.fillRect(this.x, drawY, this.w, this.h);
+        
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(this.x, drawY, this.w, 6 * CONFIG.GLOBAL_SCALE);
+        
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1;
+        const step = 80 * CONFIG.GLOBAL_SCALE;
+        for (let i = 0; i < this.w; i += step) {
+            ctx.strokeRect(this.x + i, drawY + 10 * CONFIG.GLOBAL_SCALE, 2, this.h - 20 * CONFIG.GLOBAL_SCALE);
+        }
+    }
+}
+
+export class Gem {
+    public collected: boolean = false;
+    private floatOffset: number = Math.random() * Math.PI * 2;
+    public size: number;
+
+    constructor(
+        public x: number, 
+        public y: number, 
+        public type: GemType = GemType.SMALL, 
+        public color: string = '#22d3ee'
+    ) {
+        const baseSize = type === GemType.LARGE ? 38 : (type === GemType.SLOW ? 32 : 22);
+        this.size = baseSize * CONFIG.GLOBAL_SCALE;
+    }
+
+    public get score(): number {
+        if (this.type === GemType.LARGE) return 100;
+        if (this.type === GemType.SLOW) return 0;
+        return 20;
+    }
+
+    public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
+        if (this.collected) return;
+        
+        const time = performance.now() / 250;
+        const floatAmp = (this.type === GemType.LARGE ? 20 : 14) * CONFIG.GLOBAL_SCALE;
+        const fy = (this.y - cameraY) + Math.sin(time + this.floatOffset) * floatAmp;
+
+        ctx.save();
+        ctx.translate(this.x, fy);
+        
+        if (this.type === GemType.SLOW) {
+            ctx.rotate(Math.sin(time * 0.5) * 0.5);
+        } else {
+            ctx.rotate(time * (this.type === GemType.LARGE ? 0.6 : 0.4));
+        }
+        
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = (this.type === GemType.LARGE ? 35 : 20) * CONFIG.GLOBAL_SCALE;
+        ctx.shadowColor = this.color;
+        
+        ctx.beginPath();
+        if (this.type === GemType.LARGE) {
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI * 2) / 6;
+                const r = this.size;
+                const px = Math.cos(angle) * r;
+                const py = Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+        } else if (this.type === GemType.SLOW) {
+            ctx.moveTo(0, this.size);
+            ctx.lineTo(-this.size, -this.size);
+            ctx.lineTo(this.size, -this.size);
+        } else {
+            ctx.moveTo(0, -this.size);
+            ctx.lineTo(this.size, 0);
+            ctx.lineTo(0, this.size);
+            ctx.lineTo(-this.size, 0);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        if (this.type === GemType.LARGE) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(-this.size/4, -this.size/4, this.size/3, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (this.type === GemType.SLOW) {
+             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+             ctx.fillRect(-this.size/2, -2 * CONFIG.GLOBAL_SCALE, this.size, 4 * CONFIG.GLOBAL_SCALE);
+        }
+        
+        ctx.restore();
+    }
+}
+
+export class Particle {
+    public life: number = 1.0;
+    public opacity: number = 1.0;
+
+    constructor(
+        public x: number, 
+        public y: number, 
+        public color: string, 
+        public velocity: {x: number, y: number},
+        public scale: number = 1.0
+    ) {}
+
+    public update(dt: number) {
+        this.x += this.velocity.x * dt;
+        this.y += this.velocity.y * dt;
+        this.life -= 0.02 * dt;
+        this.opacity = Math.max(0, this.life);
+    }
+
+    public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = this.color;
+        const s = (5 + Math.random() * 5) * this.scale * this.life * CONFIG.GLOBAL_SCALE;
+        ctx.fillRect(this.x - s/2, (this.y - cameraY) - s/2, s, s);
+        ctx.restore();
+    }
+}
