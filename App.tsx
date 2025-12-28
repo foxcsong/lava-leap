@@ -276,20 +276,20 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <h1 className="text-3xl md:text-7xl font-black mb-1 md:mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
+            <h1 className="text-3xl md:text-7xl font-black mb-0 md:mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
               LAVA DASH
             </h1>
-            <p className="text-sm md:text-xl mb-3 md:mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
+            <p className="text-[10px] md:text-xl mb-2 md:mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
 
-            <div className="relative group max-w-xl w-full mb-4 px-2">
+            <div className="relative group max-w-xs md:max-w-xl w-full mb-3 px-2">
               <div
                 ref={rulesContainerRef}
-                className="bg-slate-900/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700 backdrop-blur-md overflow-y-auto max-h-[32vh] md:max-h-[55vh] shadow-2xl transition-all custom-scrollbar relative"
+                className="bg-slate-900/90 p-3 md:p-8 rounded-2xl md:rounded-3xl border-2 border-slate-700 backdrop-blur-md overflow-y-auto max-h-[100px] md:max-h-[55vh] shadow-2xl transition-all custom-scrollbar relative"
               >
-                <h3 className="text-orange-400 font-bold mb-3 border-b border-slate-700 pb-1 text-base md:text-lg flex justify-between items-center sticky top-0 bg-slate-900/40 backdrop-blur-sm z-10">
+                <h3 className="text-orange-400 font-bold mb-2 border-b border-slate-700 pb-1 text-xs md:text-lg flex justify-between items-center sticky top-0 bg-slate-900/40 backdrop-blur-sm z-10">
                   <span>游戏规则</span>
-                  <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 md:hidden">
-                    <i className="fa-solid fa-mobile-screen-button mr-1"></i> 横屏体验最佳
+                  <span className="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 md:hidden">
+                    横屏最佳
                   </span>
                 </h3>
                 <ul className="text-xs md:text-sm space-y-3 md:space-y-4 text-slate-200 pb-4">
