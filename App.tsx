@@ -51,14 +51,7 @@ const App: React.FC = () => {
   };
 
   const startGame = () => {
-    // 强制请求全屏获得最佳体验
-    if (!document.fullscreenElement) {
-      void document.documentElement.requestFullscreen().catch(() => {
-        console.warn('Fullscreen request failed');
-      });
-    }
-
-    // 立即切换状态，确保 UI 响应
+    // 立即切换状态，确保 UI 响应，防止被请求全屏可能产生的阻塞
     setGameState('PLAYING');
     setIsPaused(false);
 
@@ -69,6 +62,13 @@ const App: React.FC = () => {
       } catch (err) {
         console.error('Engine reset failed:', err);
       }
+    }
+
+    // 在状态切换后再异步请求全屏（仅在有交互时有效）
+    if (!document.fullscreenElement) {
+      void document.documentElement.requestFullscreen().catch(() => {
+        console.warn('Fullscreen request failed');
+      });
     }
   };
 
@@ -188,17 +188,23 @@ const App: React.FC = () => {
               </ul>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center gap-4">
               <button
                 onClick={startGame}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  startGame();
+                // 在微信强制旋转模式下，有时候 touch 事件更可靠
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  // 不调用 preventDefault 以便 onClick 也能触发（或二选一）
                 }}
-                className="px-12 py-3 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95 touch-manipulation z-[60]"
+                className="px-12 py-3 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95 touch-manipulation z-[70] cursor-pointer"
               >
                 立刻开跑
               </button>
+
+              <div className="flex items-center gap-2 text-slate-400 text-xs mt-2 animate-pulse overflow-hidden bg-black/40 px-3 py-1 rounded-full border border-slate-700">
+                <i className="fa-solid fa-sync fa-spin"></i>
+                <span>建议锁定屏幕自动旋转，获得最佳全屏体验</span>
+              </div>
             </div>
           </div>
         )}
