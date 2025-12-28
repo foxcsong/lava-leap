@@ -355,6 +355,10 @@ const App: React.FC = () => {
                 <i className="fa-solid fa-sync fa-spin"></i>
                 <span>建议锁定屏幕自动旋转，获得最佳全屏体验</span>
               </div>
+
+              <div className="mt-8 text-slate-500 text-[10px] md:text-xs font-medium tracking-widest uppercase">
+                开发者：高阶方陈（Nick）
+              </div>
             </div>
           </div>
         )}
