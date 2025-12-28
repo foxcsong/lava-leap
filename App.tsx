@@ -172,24 +172,31 @@ const App: React.FC = () => {
               <span className="text-xs text-slate-400 font-bold uppercase tracking-widest ml-1">选择角色</span>
               <div className="flex gap-2">
                 {[
-                  { id: PlayerSkin.DEFAULT, label: '方块', color: 'bg-orange-500' },
-                  { id: PlayerSkin.FROG, label: '青蛙', color: 'bg-green-500' },
-                  { id: PlayerSkin.CHICKEN, label: '小鸡', color: 'bg-white' },
+                  { id: PlayerSkin.DEFAULT, label: '方橙', color: 'bg-orange-500' },
+                  { id: PlayerSkin.FROG, label: '娃姐', color: 'bg-green-500' },
+                  { id: PlayerSkin.CHICKEN, label: '熔岩鸡', color: 'bg-white' },
                 ].map((skin) => (
                   <button
                     key={skin.id}
                     onClick={() => setSelectedSkin(skin.id)}
-                    className={`group relative w-12 h-12 md:w-16 md:h-16 rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden animate-in fade-in slide-in-from-left duration-300 ${selectedSkin === skin.id
-                        ? 'border-yellow-400 bg-white/20 shadow-[0_0_15px_rgba(250,204,21,0.4)]'
-                        : 'border-white/10 bg-white/5 hover:bg-white/10'
-                      }`}
+                    className="flex flex-col items-center gap-1 group"
                   >
-                    <div className={`w-6 h-6 md:w-8 md:h-8 ${skin.color} rounded-sm shadow-sm transform group-hover:scale-110 transition-transform`}></div>
-                    {selectedSkin === skin.id && (
-                      <div className="absolute top-0 right-0 p-1">
-                        <i className="fa-solid fa-circle-check text-yellow-400 text-[10px]"></i>
-                      </div>
-                    )}
+                    <div
+                      className={`relative w-12 h-12 md:w-16 md:h-16 rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden animate-in fade-in slide-in-from-left duration-300 ${selectedSkin === skin.id
+                          ? 'border-yellow-400 bg-white/20 shadow-[0_0_15px_rgba(250,204,21,0.4)]'
+                          : 'border-white/10 bg-white/5 hover:bg-white/10'
+                        }`}
+                    >
+                      <div className={`w-6 h-6 md:w-8 md:h-8 ${skin.color} rounded-sm shadow-sm transform group-hover:scale-110 transition-transform`}></div>
+                      {selectedSkin === skin.id && (
+                        <div className="absolute top-0 right-0 p-1">
+                          <i className="fa-solid fa-circle-check text-yellow-400 text-[10px]"></i>
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-[10px] md:text-xs font-bold transition-colors ${selectedSkin === skin.id ? 'text-yellow-400' : 'text-slate-400'}`}>
+                      {skin.label}
+                    </span>
                   </button>
                 ))}
               </div>
