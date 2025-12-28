@@ -27,7 +27,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (canvasRef.current && !engineRef.current) {
       engineRef.current = new GameEngine(
-        canvasRef.current, 
+        canvasRef.current,
         handleGameOver,
         handleUpdateStats
       );
@@ -38,10 +38,22 @@ const App: React.FC = () => {
     };
   }, [handleGameOver, handleUpdateStats]);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   const startGame = () => {
-    // 尝试进入全屏模式以获得更好体验
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
+    // 主动尝试进入全屏以优化移动端体验
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => { });
     }
 
     if (engineRef.current) {
@@ -64,13 +76,13 @@ const App: React.FC = () => {
 
   const handleJumpPress = () => {
     if (gameState === 'PLAYING' && !isPaused) {
-        engineRef.current?.startJump();
+      engineRef.current?.startJump();
     }
   };
 
   const handleJumpRelease = () => {
     if (gameState === 'PLAYING') {
-        engineRef.current?.stopJump();
+      engineRef.current?.stopJump();
     }
   };
 
@@ -102,14 +114,14 @@ const App: React.FC = () => {
   }, [gameState, isPaused]);
 
   return (
-    <div className="relative w-screen h-[100dvh] overflow-hidden bg-black font-sans">
+    <div className="relative w-screen h-[100dvh] overflow-hidden bg-black font-sans safe-padding">
       {/* 只有在非主页状态下才可能看到画布，或者通过层级控制 */}
-      <canvas 
-        ref={canvasRef} 
+      <canvas
+        ref={canvasRef}
         className={`w-full h-full block ${gameState === 'START' ? 'invisible' : 'visible'}`}
       />
 
-      <div className="absolute top-4 right-4 text-white text-right drop-shadow-lg pointer-events-none select-none z-10">
+      <div className="absolute top-4 right-4 text-white text-right drop-shadow-lg pointer-events-none select-none z-10 px-[env(safe-area-inset-right)] py-[env(safe-area-inset-top)]">
         {gameState !== 'START' && (
           <>
             <div className="text-xl font-bold">里程: <span className="text-yellow-400">{Math.floor(distance)}m</span></div>
@@ -120,9 +132,9 @@ const App: React.FC = () => {
       </div>
 
       {gameState === 'PLAYING' && (
-        <button 
+        <button
           onClick={togglePause}
-          className="absolute top-4 left-4 w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg flex items-center justify-center text-white transition-all shadow-lg backdrop-blur-sm z-20"
+          className="absolute top-4 left-4 w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg flex items-center justify-center text-white transition-all shadow-lg backdrop-blur-sm z-20 ml-[env(safe-area-inset-left)] mt-[env(safe-area-inset-top)]"
         >
           <i className={`fa-solid ${isPaused ? 'fa-play' : 'fa-pause'} text-xl`}></i>
         </button>
@@ -134,7 +146,7 @@ const App: React.FC = () => {
             LAVA DASH
           </h1>
           <p className="text-lg md:text-xl mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
-          
+
           <div className="bg-slate-900/90 p-5 md:p-6 rounded-2xl border border-slate-700 max-w-lg mb-6 backdrop-blur-md">
             <h3 className="text-orange-400 font-bold mb-3 border-b border-slate-700 pb-1 text-lg flex justify-between items-center">
               <span>游戏规则</span>
@@ -167,12 +179,21 @@ const App: React.FC = () => {
             <span>手机用户建议横屏以获得更广阔的视野。</span>
           </div>
 
-          <button 
-            onClick={startGame}
-            className="px-12 py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95"
-          >
-            立即开跑
-          </button>
+          <div className="flex items-center gap-4 mb-8">
+            <button
+              onClick={startGame}
+              className="px-12 py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95"
+            >
+              立刻开跑
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="p-4 bg-slate-800 hover:bg-slate-700 transition-colors rounded-full text-xl shadow-xl border border-slate-600 md:hidden"
+              title="切换全屏"
+            >
+              <i className="fa-solid fa-expand"></i>
+            </button>
+          </div>
         </div>
       )}
 
@@ -194,15 +215,15 @@ const App: React.FC = () => {
                 <span className="font-mono text-red-500">{(speedMult * 100).toFixed(0)}%</span>
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-3 w-full">
-              <button 
+              <button
                 onClick={startGame}
                 className="w-full px-8 py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-xl text-xl font-bold uppercase tracking-widest shadow-lg transform hover:scale-105 active:scale-95"
               >
                 再次挑战
               </button>
-              <button 
+              <button
                 onClick={goToMainMenu}
                 className="w-full px-8 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors rounded-xl text-lg font-bold uppercase tracking-widest shadow-lg transform hover:scale-105 active:scale-95 text-slate-300"
               >
@@ -215,7 +236,7 @@ const App: React.FC = () => {
 
       {gameState === 'PLAYING' && (
         <div className="absolute bottom-8 left-0 right-0 flex justify-center pointer-events-none z-30">
-          <button 
+          <button
             onMouseDown={handleJumpPress}
             onMouseUp={handleJumpRelease}
             onMouseLeave={handleJumpRelease}
