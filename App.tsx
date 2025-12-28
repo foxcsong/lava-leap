@@ -164,11 +164,19 @@ const App: React.FC = () => {
               <ul className="text-xs md:text-sm space-y-2 md:space-y-3 text-slate-200">
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-keyboard mt-1 text-cyan-400"></i>
-                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">空格</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">跳跃按钮</span> 控制高度。</span>
+                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">空格</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">跳跃按钮</span> 控制高度，支持 <span className="text-cyan-400 font-bold">二段跳</span>。</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-triangle-exclamation mt-1 text-red-500"></i>
                   <span>碰到 <span className="text-red-500 font-bold">岩浆</span> 或撞到平台 <span className="text-red-500 font-bold">侧面</span> 会立即失败。</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <i className="fa-solid fa-gem mt-1 text-cyan-300"></i>
+                  <span><span className="text-cyan-300">蓝色宝石</span> 加分，<span className="text-purple-400 font-bold">彩色大宝石</span> 提供巨额积分。</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <i className="fa-solid fa-caret-down mt-1 text-red-400"></i>
+                  <span>速度极快时会出现 <span className="text-red-400 font-bold">红色减速宝石</span>，吃掉可降低移动速度。</span>
                 </li>
               </ul>
             </div>
