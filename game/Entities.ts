@@ -48,14 +48,16 @@ export class Player {
         this.y += this.vy * dt;
     }
 
-    public startJump() {
+    public startJump(): boolean {
         if (this.jumpCount < CONFIG.MAX_JUMPS && this.hasReleasedSinceLastJump) {
             this.vy = CONFIG.JUMP_FORCE_INITIAL;
             this.jumpCount++;
             this.isHoldingJump = true;
             this.jumpTimer = CONFIG.JUMP_HOLD_MAX_TIME;
             this.hasReleasedSinceLastJump = false;
+            return true;
         }
+        return false;
     }
 
     public stopJump() {

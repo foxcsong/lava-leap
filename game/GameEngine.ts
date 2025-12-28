@@ -1,6 +1,7 @@
 
 import { CONFIG } from './Config';
 import { Player, Platform, Gem, Particle, GemType, PlayerSkin } from './Entities';
+import { sounds } from './SoundManager';
 
 export class GameEngine {
     private ctx: CanvasRenderingContext2D;
@@ -207,7 +208,8 @@ export class GameEngine {
 
     public startJump() {
         if (!this.isRunning || this.isPaused) return;
-        this.player.startJump();
+        const jumped = this.player.startJump();
+        if (jumped) sounds.playJump();
     }
 
     public stopJump() {
@@ -313,6 +315,7 @@ export class GameEngine {
                 g.collected = true;
 
                 if (g.type === GemType.SLOW) {
+                    sounds.playSlow();
                     this.speedPenalty += 600 * CONFIG.GLOBAL_SCALE;
                     for (let i = 0; i < 30; i++) {
                         this.particles.push(new Particle(g.x, g.y, '#ef4444', {
@@ -321,6 +324,9 @@ export class GameEngine {
                         }, 1.5));
                     }
                 } else {
+                    if (g.type === GemType.LARGE) sounds.playSpecialGem();
+                    else sounds.playGem();
+
                     this.score += g.score;
                     const burstCount = g.type === GemType.LARGE ? 25 : 10;
                     for (let i = 0; i < burstCount; i++) {
@@ -347,6 +353,7 @@ export class GameEngine {
     }
 
     private shatterPlayer() {
+        sounds.playDeath();
         for (let i = 0; i < 60; i++) {
             this.particles.push(new Particle(
                 this.player.x + this.player.size / 2,
