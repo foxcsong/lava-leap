@@ -7,20 +7,29 @@ export enum GemType {
     SLOW
 }
 
+export enum PlayerSkin {
+    DEFAULT = 'DEFAULT',
+    FROG = 'FROG',
+    CHICKEN = 'CHICKEN'
+}
+
 export class Player {
     public x: number = 0;
     public y: number = 0;
-    public size: number = 56; 
+    public size: number = 56;
     public vy: number = 0;
     public jumpCount: number = 0;
     public isHoldingJump: boolean = false;
     public jumpTimer: number = 0;
     public isOnGround: boolean = false;
     private hasReleasedSinceLastJump: boolean = true;
+    public skin: PlayerSkin = PlayerSkin.DEFAULT;
+    private animationFrame: number = 0;
 
-    constructor(startX: number, startY: number) {
+    constructor(startX: number, startY: number, skin: PlayerSkin = PlayerSkin.DEFAULT) {
         this.x = startX;
         this.y = startY;
+        this.skin = skin;
         this.updateSize();
     }
 
@@ -57,30 +66,90 @@ export class Player {
 
     public resetJump() {
         this.jumpCount = 0;
-        this.isHoldingJump = false; 
+        this.isHoldingJump = false;
         this.jumpTimer = 0;
     }
 
     public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
         ctx.save();
-        ctx.fillStyle = CONFIG.COLORS.PLAYER;
-        ctx.shadowBlur = 25 * CONFIG.GLOBAL_SCALE; 
-        ctx.shadowColor = CONFIG.COLORS.PLAYER;
-        
-        ctx.translate(this.x + this.size/2, this.y - cameraY + this.size/2);
-        ctx.rotate(this.vy * 0.015 / CONFIG.GLOBAL_SCALE);
-        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
-        
-        ctx.fillStyle = '#fff';
-        const eyeSize = 12 * CONFIG.GLOBAL_SCALE;
-        ctx.fillRect(this.size/6, -this.size/3, eyeSize, eyeSize);
-        
+
+        // 动画逻辑：跳跃时拉伸，下降时拉长，空闲时微动
+        const jumpStretch = Math.min(0.3, Math.abs(this.vy) * 0.015);
+        const stretchX = this.vy < 0 ? 1 - jumpStretch : 1 + jumpStretch * 0.5;
+        const stretchY = this.vy < 0 ? 1 + jumpStretch * 1.5 : 1 - jumpStretch * 0.5;
+
+        ctx.translate(this.x + this.size / 2, this.y - cameraY + this.size / 2);
+
+        // 旋转效果（仅默认方块）
+        if (this.skin === PlayerSkin.DEFAULT) {
+            ctx.rotate(this.vy * 0.015 / CONFIG.GLOBAL_SCALE);
+        }
+
+        ctx.scale(stretchX, stretchY);
+
+        if (this.skin === PlayerSkin.DEFAULT) {
+            // --- 默认方块皮肤 ---
+            ctx.fillStyle = CONFIG.COLORS.PLAYER;
+            ctx.shadowBlur = 20 * CONFIG.GLOBAL_SCALE;
+            ctx.shadowColor = CONFIG.COLORS.PLAYER;
+            ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+
+            // 眼睛
+            ctx.fillStyle = '#fff';
+            const eyeSize = 12 * CONFIG.GLOBAL_SCALE;
+            ctx.fillRect(this.size / 6, -this.size / 3, eyeSize, eyeSize);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(this.size / 4, -this.size / 3 + 2, eyeSize / 2, eyeSize / 2);
+
+        } else if (this.skin === PlayerSkin.FROG) {
+            // --- 像素青蛙皮肤 ---
+            const s = this.size;
+            ctx.fillStyle = '#4ade80'; // 绿色主体
+            ctx.fillRect(-s / 2, -s / 4, s, s / 2); // 身体
+            ctx.fillRect(-s / 2.5, -s / 2, s / 4, s / 4); // 左眼座
+            ctx.fillRect(s / 2.5 - s / 4, -s / 2, s / 4, s / 4); // 右眼座
+
+            // 眼睛
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-s / 3, -s / 2.2, s / 6, s / 6);
+            ctx.fillRect(s / 6, -s / 2.2, s / 6, s / 6);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(-s / 4, -s / 2.2 + 2, s / 12, s / 12);
+            ctx.fillRect(s / 4 - s / 12, -s / 2.2 + 2, s / 12, s / 12);
+
+            // 嘴巴/红晕
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(-s / 4, 0, s / 2, 4 * CONFIG.GLOBAL_SCALE);
+
+        } else if (this.skin === PlayerSkin.CHICKEN) {
+            // --- 像素小鸡皮肤 ---
+            const s = this.size;
+            ctx.fillStyle = '#ffffff'; // 白色身体
+            ctx.fillRect(-s / 2, -s / 3, s, s / 1.5);
+
+            // 鸡冠
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(-s / 6, -s / 2, s / 3, s / 6);
+
+            // 嘴
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(s / 4, -s / 10, s / 4, s / 4);
+
+            // 眼睛
+            ctx.fillStyle = '#000';
+            ctx.fillRect(s / 8, -s / 4, 6 * CONFIG.GLOBAL_SCALE, 6 * CONFIG.GLOBAL_SCALE);
+
+            // 翅膀
+            ctx.fillStyle = '#f1f5f9';
+            ctx.fillRect(-s / 2 - 4, -s / 6, s / 4, s / 3);
+        }
+
         ctx.restore();
     }
 }
 
 export class Platform {
-    public h: number = 44; 
+    public h: number = 44;
     constructor(public x: number, public w: number, public y: number) {
         this.h = 44 * CONFIG.GLOBAL_SCALE;
     }
@@ -91,13 +160,13 @@ export class Platform {
         grad.addColorStop(0, '#475569');
         grad.addColorStop(0.5, '#334155');
         grad.addColorStop(1, '#1e293b');
-        
+
         ctx.fillStyle = grad;
         ctx.fillRect(this.x, drawY, this.w, this.h);
-        
+
         ctx.fillStyle = '#94a3b8';
         ctx.fillRect(this.x, drawY, this.w, 6 * CONFIG.GLOBAL_SCALE);
-        
+
         ctx.strokeStyle = '#64748b';
         ctx.lineWidth = 1;
         const step = 80 * CONFIG.GLOBAL_SCALE;
@@ -113,9 +182,9 @@ export class Gem {
     public size: number;
 
     constructor(
-        public x: number, 
-        public y: number, 
-        public type: GemType = GemType.SMALL, 
+        public x: number,
+        public y: number,
+        public type: GemType = GemType.SMALL,
         public color: string = '#22d3ee'
     ) {
         const baseSize = type === GemType.LARGE ? 38 : (type === GemType.SLOW ? 32 : 22);
@@ -130,24 +199,24 @@ export class Gem {
 
     public draw(ctx: CanvasRenderingContext2D, cameraY: number) {
         if (this.collected) return;
-        
+
         const time = performance.now() / 250;
         const floatAmp = (this.type === GemType.LARGE ? 20 : 14) * CONFIG.GLOBAL_SCALE;
         const fy = (this.y - cameraY) + Math.sin(time + this.floatOffset) * floatAmp;
 
         ctx.save();
         ctx.translate(this.x, fy);
-        
+
         if (this.type === GemType.SLOW) {
             ctx.rotate(Math.sin(time * 0.5) * 0.5);
         } else {
             ctx.rotate(time * (this.type === GemType.LARGE ? 0.6 : 0.4));
         }
-        
+
         ctx.fillStyle = this.color;
         ctx.shadowBlur = (this.type === GemType.LARGE ? 35 : 20) * CONFIG.GLOBAL_SCALE;
         ctx.shadowColor = this.color;
-        
+
         ctx.beginPath();
         if (this.type === GemType.LARGE) {
             for (let i = 0; i < 6; i++) {
@@ -174,13 +243,13 @@ export class Gem {
         if (this.type === GemType.LARGE) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.beginPath();
-            ctx.arc(-this.size/4, -this.size/4, this.size/3, 0, Math.PI * 2);
+            ctx.arc(-this.size / 4, -this.size / 4, this.size / 3, 0, Math.PI * 2);
             ctx.fill();
         } else if (this.type === GemType.SLOW) {
-             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-             ctx.fillRect(-this.size/2, -2 * CONFIG.GLOBAL_SCALE, this.size, 4 * CONFIG.GLOBAL_SCALE);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fillRect(-this.size / 2, -2 * CONFIG.GLOBAL_SCALE, this.size, 4 * CONFIG.GLOBAL_SCALE);
         }
-        
+
         ctx.restore();
     }
 }
@@ -190,12 +259,12 @@ export class Particle {
     public opacity: number = 1.0;
 
     constructor(
-        public x: number, 
-        public y: number, 
-        public color: string, 
-        public velocity: {x: number, y: number},
+        public x: number,
+        public y: number,
+        public color: string,
+        public velocity: { x: number, y: number },
         public scale: number = 1.0
-    ) {}
+    ) { }
 
     public update(dt: number) {
         this.x += this.velocity.x * dt;
@@ -210,7 +279,7 @@ export class Particle {
         ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.color;
         const s = (5 + Math.random() * 5) * this.scale * this.life * CONFIG.GLOBAL_SCALE;
-        ctx.fillRect(this.x - s/2, (this.y - cameraY) - s/2, s, s);
+        ctx.fillRect(this.x - s / 2, (this.y - cameraY) - s / 2, s, s);
         ctx.restore();
     }
 }

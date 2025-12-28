@@ -1,6 +1,6 @@
 
 import { CONFIG } from './Config';
-import { Player, Platform, Gem, Particle, GemType } from './Entities';
+import { Player, Platform, Gem, Particle, GemType, PlayerSkin } from './Entities';
 
 export class GameEngine {
     private ctx: CanvasRenderingContext2D;
@@ -19,6 +19,7 @@ export class GameEngine {
     private speedMultiplier: number = 1.0;
     private isRunning: boolean = false;
     private isPaused: boolean = false;
+    private skin: PlayerSkin = PlayerSkin.DEFAULT;
 
     private cameraY: number = 0;
 
@@ -28,16 +29,23 @@ export class GameEngine {
     constructor(
         canvas: HTMLCanvasElement,
         private onGameOver: (score: number, distance: number) => void,
-        private onUpdateStats: (score: number, distance: number, speedMult: number) => void
+        private onUpdateStats: (score: number, distance: number, speedMult: number) => void,
+        initialSkin: PlayerSkin = PlayerSkin.DEFAULT
     ) {
         this.canvas = canvas;
+        this.skin = initialSkin;
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not get canvas context');
         this.ctx = ctx;
 
-        this.player = new Player(window.innerWidth * 0.3, window.innerHeight / 2);
+        this.player = new Player(this.canvas.clientWidth * 0.3, this.canvas.clientHeight / 2, this.skin);
         this.resize();
         window.addEventListener('resize', this.resize);
+    }
+
+    public setSkin(skin: PlayerSkin) {
+        this.skin = skin;
+        if (this.player) this.player.skin = skin;
     }
 
     private resize = () => {
@@ -106,7 +114,7 @@ export class GameEngine {
         this.lastX = startX + startWidth;
         this.lastY = startY;
 
-        this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE);
+        this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE, this.skin);
         this.player.vy = 0;
         this.player.resetJump();
 
