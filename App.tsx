@@ -173,7 +173,7 @@ const App: React.FC = () => {
               <div className="flex gap-2">
                 {[
                   { id: PlayerSkin.DEFAULT, label: '方橙', color: 'bg-orange-500' },
-                  { id: PlayerSkin.FROG, label: '娃姐', color: 'bg-green-500' },
+                  { id: PlayerSkin.FROG, label: '蛙姐', color: 'bg-green-500' },
                   { id: PlayerSkin.CHICKEN, label: '熔岩鸡', color: 'bg-white' },
                 ].map((skin) => (
                   <button
@@ -183,8 +183,8 @@ const App: React.FC = () => {
                   >
                     <div
                       className={`relative w-12 h-12 md:w-16 md:h-16 rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden animate-in fade-in slide-in-from-left duration-300 ${selectedSkin === skin.id
-                          ? 'border-yellow-400 bg-white/20 shadow-[0_0_15px_rgba(250,204,21,0.4)]'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10'
+                        ? 'border-yellow-400 bg-white/20 shadow-[0_0_15px_rgba(250,204,21,0.4)]'
+                        : 'border-white/10 bg-white/5 hover:bg-white/10'
                         }`}
                     >
                       <div className={`w-6 h-6 md:w-8 md:h-8 ${skin.color} rounded-sm shadow-sm transform group-hover:scale-110 transition-transform`}></div>
