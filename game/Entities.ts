@@ -110,9 +110,13 @@ export class Player {
 
         if (this.skin === PlayerSkin.DEFAULT) {
             // --- 默认方块皮肤 ---
-            ctx.fillStyle = CONFIG.COLORS.PLAYER;
+            let cubeColor = CONFIG.COLORS.PLAYER;
+            if (this.mode === GameMode.COLOR_SHIFT) {
+                cubeColor = this.colorType === ColorType.RED ? CONFIG.COLORS.SHIFT_RED : CONFIG.COLORS.SHIFT_BLUE;
+            }
+            ctx.fillStyle = cubeColor;
             ctx.shadowBlur = 20 * CONFIG.GLOBAL_SCALE;
-            ctx.shadowColor = CONFIG.COLORS.PLAYER;
+            ctx.shadowColor = cubeColor;
             ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
 
             // 眼睛
@@ -125,7 +129,15 @@ export class Player {
         } else if (this.skin === PlayerSkin.FROG) {
             // --- 像素青蛙皮肤 ---
             const s = this.size;
-            ctx.fillStyle = '#4ade80'; // 绿色主体
+            let frogBody = '#4ade80';
+            let frogMouth = '#22c55e';
+
+            if (this.mode === GameMode.COLOR_SHIFT) {
+                frogBody = this.colorType === ColorType.RED ? '#f87171' : '#60a5fa';
+                frogMouth = this.colorType === ColorType.RED ? '#b91c1c' : '#1d4ed8';
+            }
+
+            ctx.fillStyle = frogBody; // 身体
             ctx.fillRect(-s / 2, -s / 4, s, s / 2); // 身体
             ctx.fillRect(-s / 2.5, -s / 2, s / 4, s / 4); // 左眼座
             ctx.fillRect(s / 2.5 - s / 4, -s / 2, s / 4, s / 4); // 右眼座
@@ -139,13 +151,23 @@ export class Player {
             ctx.fillRect(s / 4 - s / 12, -s / 2.2 + 2, s / 12, s / 12);
 
             // 嘴巴/红晕
-            ctx.fillStyle = '#22c55e';
+            ctx.fillStyle = frogMouth;
             ctx.fillRect(-s / 4, 0, s / 2, 4 * CONFIG.GLOBAL_SCALE);
 
         } else if (this.skin === PlayerSkin.CHICKEN) {
             // --- 像素小鸡皮肤 ---
             const s = this.size;
-            ctx.fillStyle = '#ffffff'; // 白色身体
+            let chickenBody = '#ffffff';
+            let chickenGlow = 'rgba(255, 255, 255, 0.5)';
+
+            if (this.mode === GameMode.COLOR_SHIFT) {
+                chickenBody = this.colorType === ColorType.RED ? '#fee2e2' : '#dbeafe';
+                chickenGlow = this.colorType === ColorType.RED ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+            }
+
+            ctx.fillStyle = chickenBody; // 主体
+            ctx.shadowBlur = (this.mode === GameMode.COLOR_SHIFT ? 15 : 0) * CONFIG.GLOBAL_SCALE;
+            ctx.shadowColor = chickenGlow;
             ctx.fillRect(-s / 2, -s / 3, s, s / 1.5);
 
             // 鸡冠
@@ -161,18 +183,12 @@ export class Player {
             ctx.fillRect(s / 8, -s / 4, 6 * CONFIG.GLOBAL_SCALE, 6 * CONFIG.GLOBAL_SCALE);
 
             // 翅膀
-            ctx.fillStyle = '#f1f5f9';
+            ctx.fillStyle = (this.mode === GameMode.COLOR_SHIFT) ? chickenGlow : '#f1f5f9';
             ctx.fillRect(-s / 2 - 4, -s / 6, s / 4, s / 3);
         }
 
-        // 变色模式下的颜色叠加层 (蒙版效果)
+        // 变色模式下的发光外框 (更原生)
         if (this.mode === GameMode.COLOR_SHIFT) {
-            ctx.scale(1 / stretchX, 1 / stretchY); // 抵消缩放，使蒙版覆盖整个区域
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.fillStyle = this.colorType === ColorType.RED ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
-            ctx.fillRect(-this.size * 2, -this.size * 2, this.size * 4, this.size * 4);
-
-            // 外框强化
             ctx.globalCompositeOperation = 'source-over';
             ctx.strokeStyle = this.colorType === ColorType.RED ? '#ef4444' : '#3b82f6';
             ctx.lineWidth = 4 * CONFIG.GLOBAL_SCALE;
