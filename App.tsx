@@ -11,12 +11,14 @@ const App: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [score, setScore] = useState(0);
   const [distance, setDistance] = useState(0);
+  const [maxSpeed, setMaxSpeed] = useState(1.0);
   const [speedMult, setSpeedMult] = useState(1.0);
   const [selectedSkin, setSelectedSkin] = useState<PlayerSkin>(PlayerSkin.DEFAULT);
 
-  const handleGameOver = useCallback((finalScore: number, finalDistance: number) => {
+  const handleGameOver = useCallback((finalScore: number, finalDistance: number, finalMaxSpeed: number) => {
     setScore(finalScore);
     setDistance(finalDistance);
+    setMaxSpeed(finalMaxSpeed);
     setGameState('GAMEOVER');
     setIsPaused(false);
   }, []);
@@ -283,6 +285,10 @@ const App: React.FC = () => {
                 <div className="flex justify-between border-b border-slate-700 pb-1">
                   <span>得分</span>
                   <span className="font-mono text-cyan-400">{score}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-700 pb-1">
+                  <span>最高速度</span>
+                  <span className="font-mono text-pink-400">{maxSpeed.toFixed(2)}x</span>
                 </div>
               </div>
 

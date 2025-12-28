@@ -20,6 +20,7 @@ export class GameEngine {
     private speedMultiplier: number = 1.0;
     private isRunning: boolean = false;
     private isPaused: boolean = false;
+    private maxSpeedReached: number = 1.0;
     private skin: PlayerSkin = PlayerSkin.DEFAULT;
 
     private cameraY: number = 0;
@@ -29,7 +30,7 @@ export class GameEngine {
 
     constructor(
         canvas: HTMLCanvasElement,
-        private onGameOver: (score: number, distance: number) => void,
+        private onGameOver: (score: number, distance: number, maxSpeed: number) => void,
         private onUpdateStats: (score: number, distance: number, speedMult: number) => void,
         initialSkin: PlayerSkin = PlayerSkin.DEFAULT
     ) {
@@ -102,6 +103,7 @@ export class GameEngine {
         this.speedPenalty = 0;
         this.score = 0;
         this.speedMultiplier = 1.0;
+        this.maxSpeedReached = 1.0;
         this.isPaused = false;
 
         this.resize();
@@ -224,6 +226,7 @@ export class GameEngine {
 
         const effectiveDistanceForSpeed = Math.max(0, this.distance - this.speedPenalty);
         this.speedMultiplier = Math.min(4.5, 1 + (effectiveDistanceForSpeed / (2800)));
+        this.maxSpeedReached = Math.max(this.maxSpeedReached, this.speedMultiplier);
 
         const effectiveDt = baseDt * this.speedMultiplier;
         const moveX = CONFIG.RUN_SPEED * effectiveDt;
@@ -346,7 +349,7 @@ export class GameEngine {
 
         if (dead) {
             this.isRunning = false;
-            setTimeout(() => this.onGameOver(this.score, this.distance), 800);
+            setTimeout(() => this.onGameOver(this.score, this.distance, this.maxSpeedReached), 800);
         }
 
         this.onUpdateStats(this.score, this.distance, this.speedMultiplier);
