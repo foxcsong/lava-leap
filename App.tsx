@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GameEngine } from './game/GameEngine';
 import { PlayerSkin, GameMode, ColorType } from './game/Entities';
 import { sounds } from './game/SoundManager';
+import { CONFIG } from './game/Config';
 
 const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -295,8 +296,13 @@ const App: React.FC = () => {
                 <i className="fa-solid fa-sync fa-spin"></i>
                 <span>建议锁定屏幕自动旋转，获得最佳全屏体验</span>
               </div>
-              <div className="mt-8 text-slate-500 text-[10px] md:text-xs font-medium tracking-widest uppercase">
-                开发者：高阶方陈（Nick）
+              <div className="mt-8 flex flex-col items-center gap-1">
+                <div className="text-slate-600 text-[10px] font-mono tracking-widest uppercase">
+                  Version {CONFIG.VERSION}
+                </div>
+                <div className="text-slate-500 text-[10px] md:text-xs font-medium tracking-widest uppercase">
+                  开发者：高阶方陈（Nick）
+                </div>
               </div>
             </div>
           </div>
