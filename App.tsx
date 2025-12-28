@@ -51,9 +51,9 @@ const App: React.FC = () => {
   };
 
   const startGame = () => {
-    // 主动尝试进入全屏以优化移动端体验
+    // 异步尝试全屏，但不等待其结果
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => { });
+      void document.documentElement.requestFullscreen().catch(() => { });
     }
 
     if (engineRef.current) {
