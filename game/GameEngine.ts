@@ -6,23 +6,23 @@ export class GameEngine {
     private ctx: CanvasRenderingContext2D;
     private canvas: HTMLCanvasElement;
     private animationId: number | null = null;
-    
+
     private player: Player;
     private platforms: Platform[] = [];
     private gems: Gem[] = [];
     private particles: Particle[] = [];
-    
+
     private lastTime: number = 0;
     private distance: number = 0;
-    private speedPenalty: number = 0; 
+    private speedPenalty: number = 0;
     private score: number = 0;
     private speedMultiplier: number = 1.0;
     private isRunning: boolean = false;
     private isPaused: boolean = false;
 
     private cameraY: number = 0;
-    
-    private lastX: number = 0; 
+
+    private lastX: number = 0;
     private lastY: number = 0;
 
     constructor(
@@ -41,18 +41,19 @@ export class GameEngine {
     }
 
     private resize = () => {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+
         // 计算全局缩放比例，以 1080px 高度为基准
         CONFIG.GLOBAL_SCALE = Math.max(0.35, this.canvas.height / CONFIG.REFERENCE_HEIGHT);
-        
+
         // 同步物理参数缩放
         CONFIG.RUN_SPEED = CONFIG.BASE_RUN_SPEED * CONFIG.GLOBAL_SCALE;
         CONFIG.GRAVITY = CONFIG.BASE_GRAVITY * CONFIG.GLOBAL_SCALE;
         CONFIG.JUMP_FORCE_INITIAL = CONFIG.BASE_JUMP_FORCE_INITIAL * CONFIG.GLOBAL_SCALE;
         CONFIG.JUMP_FORCE_HOLD = CONFIG.BASE_JUMP_FORCE_HOLD * CONFIG.GLOBAL_SCALE;
-        
+
         // 自动生成参数缩放
         CONFIG.MAX_PLATFORM_GAP = CONFIG.BASE_MAX_PLATFORM_GAP * CONFIG.GLOBAL_SCALE;
         CONFIG.MAX_PLATFORM_STEP = CONFIG.BASE_MAX_PLATFORM_STEP * CONFIG.GLOBAL_SCALE;
@@ -63,7 +64,7 @@ export class GameEngine {
         CONFIG.WORLD_HEIGHT_LIMIT_UP = -this.canvas.height * 0.8;
         CONFIG.WORLD_HEIGHT_LIMIT_DOWN = this.canvas.height * 0.6;
         CONFIG.LAVA_WORLD_Y = CONFIG.GROUND_Y + this.canvas.height * 1.2;
-        
+
         if (this.player) {
             this.player.x = this.canvas.width * 0.3;
             this.player.updateSize();
@@ -88,37 +89,37 @@ export class GameEngine {
         this.gems = [];
         this.particles = [];
         this.distance = 0;
-        this.speedPenalty = 0; 
+        this.speedPenalty = 0;
         this.score = 0;
         this.speedMultiplier = 1.0;
         this.isPaused = false;
-        
+
         this.resize();
-        
+
         const startX = -1000 * CONFIG.GLOBAL_SCALE;
         const startWidth = 3500 * CONFIG.GLOBAL_SCALE;
         const startY = CONFIG.GROUND_Y;
         const startPlatform = new Platform(startX, startWidth, startY);
         this.platforms.push(startPlatform);
-        
+
         this.lastX = startX + startWidth;
         this.lastY = startY;
 
         this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE);
         this.player.vy = 0;
         this.player.resetJump();
-        
+
         this.cameraY = this.player.y - this.canvas.height * 0.5;
-        
+
         this.isRunning = true;
         this.lastTime = performance.now();
-        
+
         this.fillRoadBuffer();
         this.gameLoop(this.lastTime);
     }
 
     private fillRoadBuffer() {
-        const spawnThreshold = this.canvas.width + 3000 * CONFIG.GLOBAL_SCALE; 
+        const spawnThreshold = this.canvas.width + 3000 * CONFIG.GLOBAL_SCALE;
         const minY = CONFIG.GROUND_Y + CONFIG.WORLD_HEIGHT_LIMIT_UP;
         const maxY = CONFIG.GROUND_Y + CONFIG.WORLD_HEIGHT_LIMIT_DOWN;
 
@@ -135,16 +136,16 @@ export class GameEngine {
 
                 if (diffY < -maxUpStep) diffY = -maxUpStep;
                 if (diffY > maxDownStep) diffY = maxDownStep;
-                
-                if (diffY < -100 * CONFIG.GLOBAL_SCALE) gap = Math.min(gap, 350 * CONFIG.GLOBAL_SCALE); 
+
+                if (diffY < -100 * CONFIG.GLOBAL_SCALE) gap = Math.min(gap, 350 * CONFIG.GLOBAL_SCALE);
 
                 const nextY = Math.max(minY, Math.min(maxY, this.lastY + diffY));
                 const width = CONFIG.MIN_PLATFORM_WIDTH + Math.random() * 600 * CONFIG.GLOBAL_SCALE;
-                
+
                 const p = new Platform(this.lastX + gap, width, nextY);
                 this.platforms.push(p);
                 this.addGemsToPlatform(p);
-                
+
                 this.lastX = p.x + p.w;
                 this.lastY = p.y;
             } else {
@@ -156,8 +157,8 @@ export class GameEngine {
                 let centerY = this.lastY + (Math.random() - 0.5) * 200 * CONFIG.GLOBAL_SCALE;
                 centerY = Math.max(minY + 300 * CONFIG.GLOBAL_SCALE, Math.min(maxY - 300 * CONFIG.GLOBAL_SCALE, centerY));
 
-                const pHigh = new Platform(this.lastX + baseGap, widthHigh, centerY - splitYDiff/2);
-                const pLow = new Platform(this.lastX + baseGap + Math.random() * 150 * CONFIG.GLOBAL_SCALE, widthLow, centerY + splitYDiff/2);
+                const pHigh = new Platform(this.lastX + baseGap, widthHigh, centerY - splitYDiff / 2);
+                const pLow = new Platform(this.lastX + baseGap + Math.random() * 150 * CONFIG.GLOBAL_SCALE, widthLow, centerY + splitYDiff / 2);
 
                 this.platforms.push(pHigh, pLow);
                 this.addGemsToPlatform(pHigh);
@@ -170,17 +171,17 @@ export class GameEngine {
     }
 
     private addGemsToPlatform(p: Platform) {
-        const onTop = Math.random() > 0.3; 
+        const onTop = Math.random() > 0.3;
         const numGems = Math.floor(Math.random() * 4) + 2;
-        
+
         const largeGemChance = !onTop ? 0.45 : 0.10;
         const isLargeSet = Math.random() < largeGemChance;
-        const rareColors = ['#f43f5e', '#fbbf24', '#a855f7', '#10b981']; 
+        const rareColors = ['#f43f5e', '#fbbf24', '#a855f7', '#10b981'];
 
         for (let i = 0; i < numGems; i++) {
             const step = (p.w - 120 * CONFIG.GLOBAL_SCALE) / numGems;
             const gx = p.x + 60 * CONFIG.GLOBAL_SCALE + i * step;
-            
+
             let setType = isLargeSet ? GemType.LARGE : GemType.SMALL;
             let setColor = isLargeSet ? rareColors[Math.floor(Math.random() * rareColors.length)] : '#22d3ee';
 
@@ -208,21 +209,21 @@ export class GameEngine {
     private update(deltaTime: number) {
         if (!this.isRunning || this.isPaused) return;
 
-        const baseDt = Math.min(deltaTime / 16.67, 2.5); 
-        
+        const baseDt = Math.min(deltaTime / 16.67, 2.5);
+
         const effectiveDistanceForSpeed = Math.max(0, this.distance - this.speedPenalty);
         this.speedMultiplier = Math.min(4.5, 1 + (effectiveDistanceForSpeed / (2800)));
-        
+
         const effectiveDt = baseDt * this.speedMultiplier;
         const moveX = CONFIG.RUN_SPEED * effectiveDt;
         const gravity = CONFIG.GRAVITY;
-        
+
         this.distance += (moveX / (10 * CONFIG.GLOBAL_SCALE));
         this.player.update(effectiveDt, gravity);
 
         // 提升摄像机高度基准，保证跑道在移动端有更好的视角
         const targetCameraY = this.player.y - this.canvas.height * 0.55;
-        const cameraSmooth = 0.12 * this.speedMultiplier; 
+        const cameraSmooth = 0.12 * this.speedMultiplier;
         this.cameraY += (targetCameraY - this.cameraY) * Math.min(0.3, cameraSmooth) * baseDt;
 
         this.platforms.forEach(p => p.x -= moveX);
@@ -237,8 +238,8 @@ export class GameEngine {
         if (this.player.isOnGround) {
             if (Math.random() < 0.4) {
                 this.particles.push(new Particle(
-                    this.player.x, this.player.y + this.player.size, 
-                    'rgba(255,255,255,0.4)', 
+                    this.player.x, this.player.y + this.player.size,
+                    'rgba(255,255,255,0.4)',
                     { x: -5 * CONFIG.GLOBAL_SCALE - Math.random() * 5 * CONFIG.GLOBAL_SCALE, y: -Math.random() * 2 * CONFIG.GLOBAL_SCALE }
                 ));
             }
@@ -266,7 +267,7 @@ export class GameEngine {
 
                 const minOverlap = Math.min(overlapTop, overlapBottom, overlapLeft, overlapRight);
 
-                if (minOverlap === overlapLeft && overlapTop > 12 * CONFIG.GLOBAL_SCALE && overlapBottom > 12 * CONFIG.GLOBAL_SCALE) { 
+                if (minOverlap === overlapLeft && overlapTop > 12 * CONFIG.GLOBAL_SCALE && overlapBottom > 12 * CONFIG.GLOBAL_SCALE) {
                     dead = true;
                     this.shatterPlayer();
                     break;
@@ -278,7 +279,7 @@ export class GameEngine {
                 } else if (minOverlap === overlapBottom) {
                     this.player.y = p.y + p.h;
                     if (this.player.vy < 0) this.player.vy = 0;
-                    this.player.resetJump(); 
+                    this.player.resetJump();
                 }
             }
         }
@@ -287,22 +288,22 @@ export class GameEngine {
             const hitZone = (g.type === GemType.LARGE ? 100 : 80) * CONFIG.GLOBAL_SCALE;
             if (!g.collected && Math.abs(this.player.x - g.x) < hitZone && Math.abs(this.player.y - g.y) < hitZone) {
                 g.collected = true;
-                
+
                 if (g.type === GemType.SLOW) {
-                    this.speedPenalty += 600 * CONFIG.GLOBAL_SCALE; 
-                    for(let i=0; i<30; i++) {
+                    this.speedPenalty += 600 * CONFIG.GLOBAL_SCALE;
+                    for (let i = 0; i < 30; i++) {
                         this.particles.push(new Particle(g.x, g.y, '#ef4444', {
-                            x: (Math.random()-0.5) * 35 * CONFIG.GLOBAL_SCALE, 
-                            y: (Math.random()-0.5) * 35 * CONFIG.GLOBAL_SCALE
+                            x: (Math.random() - 0.5) * 35 * CONFIG.GLOBAL_SCALE,
+                            y: (Math.random() - 0.5) * 35 * CONFIG.GLOBAL_SCALE
                         }, 1.5));
                     }
                 } else {
                     this.score += g.score;
                     const burstCount = g.type === GemType.LARGE ? 25 : 10;
-                    for(let i=0; i<burstCount; i++) {
+                    for (let i = 0; i < burstCount; i++) {
                         this.particles.push(new Particle(g.x, g.y, g.color, {
-                            x: (Math.random()-0.5) * (g.type === GemType.LARGE ? 25 : 15) * CONFIG.GLOBAL_SCALE, 
-                            y: (Math.random()-0.5) * (g.type === GemType.LARGE ? 25 : 15) * CONFIG.GLOBAL_SCALE
+                            x: (Math.random() - 0.5) * (g.type === GemType.LARGE ? 25 : 15) * CONFIG.GLOBAL_SCALE,
+                            y: (Math.random() - 0.5) * (g.type === GemType.LARGE ? 25 : 15) * CONFIG.GLOBAL_SCALE
                         }));
                     }
                 }
@@ -323,11 +324,11 @@ export class GameEngine {
     }
 
     private shatterPlayer() {
-        for(let i=0; i<60; i++) {
+        for (let i = 0; i < 60; i++) {
             this.particles.push(new Particle(
-                this.player.x + this.player.size/2, 
-                this.player.y + this.player.size/2, 
-                CONFIG.COLORS.PLAYER, 
+                this.player.x + this.player.size / 2,
+                this.player.y + this.player.size / 2,
+                CONFIG.COLORS.PLAYER,
                 { x: (Math.random() - 0.5) * 35 * CONFIG.GLOBAL_SCALE, y: (Math.random() - 0.5) * 35 * CONFIG.GLOBAL_SCALE }
             ));
         }
@@ -335,7 +336,7 @@ export class GameEngine {
 
     private draw() {
         const ctx = this.ctx;
-        
+
         // 还原游戏背景：深空到岩浆的渐变
         const grad = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
         grad.addColorStop(0, '#0f172a'); // 深蓝
@@ -359,16 +360,16 @@ export class GameEngine {
             ctx.fillStyle = 'white';
             ctx.font = `bold ${48 * CONFIG.GLOBAL_SCALE}px sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText('游戏暂停', this.canvas.width/2, this.canvas.height/2);
+            ctx.fillText('游戏暂停', this.canvas.width / 2, this.canvas.height / 2);
         }
     }
 
     private drawWorldLava() {
         const lavaScreenY = CONFIG.LAVA_WORLD_Y - this.cameraY;
-        const wave = Math.sin(performance.now()/500) * 20 * CONFIG.GLOBAL_SCALE;
+        const wave = Math.sin(performance.now() / 500) * 20 * CONFIG.GLOBAL_SCALE;
         this.ctx.fillStyle = '#ff4400';
         this.ctx.fillRect(0, lavaScreenY + wave, this.canvas.width, 2000 * CONFIG.GLOBAL_SCALE);
-        
+
         const glow = this.ctx.createLinearGradient(0, lavaScreenY + wave - 100 * CONFIG.GLOBAL_SCALE, 0, lavaScreenY + wave);
         glow.addColorStop(0, 'rgba(255,68,0,0)');
         glow.addColorStop(1, 'rgba(255,68,0,0.6)');
