@@ -436,19 +436,37 @@ const App: React.FC = () => {
         )}
 
         {gameState === 'PLAYING' && (
-          <div className="absolute bottom-6 right-6 md:bottom-12 md:right-12 pointer-events-none z-30">
-            <button
-              onMouseDown={handleJumpPress}
-              onMouseUp={handleJumpRelease}
-              onMouseLeave={handleJumpRelease}
-              onTouchStart={(e) => { e.preventDefault(); handleJumpPress(); }}
-              onTouchEnd={(e) => { e.preventDefault(); handleJumpRelease(); }}
-              className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none ${isPaused ? 'opacity-20' : ''}`}
-            >
-              <i className="fa-solid fa-angles-up text-2xl md:text-3xl mb-1"></i>
-              <span className="text-xs md:text-xl font-black uppercase tracking-widest">跳跃</span>
-            </button>
-          </div>
+          <>
+            {/* 左侧跳跃键 (适配左撇子) */}
+            <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 pointer-events-none z-30">
+              <button
+                onMouseDown={handleJumpPress}
+                onMouseUp={handleJumpRelease}
+                onMouseLeave={handleJumpRelease}
+                onTouchStart={(e) => { e.preventDefault(); handleJumpPress(); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleJumpRelease(); }}
+                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none ${isPaused ? 'opacity-20' : ''}`}
+              >
+                <i className="fa-solid fa-angles-up text-2xl md:text-3xl mb-1"></i>
+                <span className="text-xs md:text-xl font-black uppercase tracking-widest">跳跃</span>
+              </button>
+            </div>
+
+            {/* 右侧跳跃键 */}
+            <div className="absolute bottom-6 right-6 md:bottom-12 md:right-12 pointer-events-none z-30">
+              <button
+                onMouseDown={handleJumpPress}
+                onMouseUp={handleJumpRelease}
+                onMouseLeave={handleJumpRelease}
+                onTouchStart={(e) => { e.preventDefault(); handleJumpPress(); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleJumpRelease(); }}
+                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none ${isPaused ? 'opacity-20' : ''}`}
+              >
+                <i className="fa-solid fa-angles-up text-2xl md:text-3xl mb-1"></i>
+                <span className="text-xs md:text-xl font-black uppercase tracking-widest">跳跃</span>
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
