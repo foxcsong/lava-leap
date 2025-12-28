@@ -130,19 +130,30 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      // 防止某些键触发浏览器默认行为（如滚动）
+      if (['Space', 'ArrowUp', 'ShiftLeft', 'ShiftRight', 'KeyZ', 'KeyX'].includes(e.code)) {
+        if (gameState === 'PLAYING') e.preventDefault();
+      }
+
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
         if (gameState === 'START' || gameState === 'GAMEOVER') {
           startGame();
         } else {
           handleJumpPress();
         }
       }
+
+      // 变色快捷键 (Shift, Z, X)
+      if (gameMode === GameMode.COLOR_SHIFT && (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyZ' || e.code === 'KeyX')) {
+        handleColorShift();
+      }
+
       if (e.code === 'Escape' || e.code === 'KeyP') {
         togglePause();
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
         handleJumpRelease();
       }
     };
@@ -153,7 +164,7 @@ const App: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [gameState, isPaused]);
+  }, [gameState, isPaused, gameMode]);
 
   return (
     <div className="w-full h-full bg-black flex items-center justify-center overflow-hidden">
@@ -260,17 +271,17 @@ const App: React.FC = () => {
               <ul className="text-xs md:text-sm space-y-2 md:space-y-3 text-slate-200">
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-keyboard mt-1 text-cyan-400"></i>
-                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">右键</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">跳跃按钮</span> 控制高度，支持二段跳。</span>
+                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">空格</span>、<span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">上方向键</span> 或右侧跳跃按钮控制高度。</span>
                 </li>
                 {gameMode === GameMode.COLOR_SHIFT ? (
                   <li className="flex items-start gap-3 border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/10">
                     <i className="fa-solid fa-palette mt-1 text-indigo-400"></i>
-                    <span>在该模式下，<span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">左键</span> 将变为 <span className="text-indigo-400 font-bold uppercase">变色</span>。角色颜色必须与踏上的平台颜色一致。</span>
+                    <span>在该模式下，<span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">Shift</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">Z</span> 键将触发 <span className="text-indigo-400 font-bold uppercase">变色</span>。角色颜色必须与踏上的平台颜色一致。</span>
                   </li>
                 ) : (
                   <li className="flex items-start gap-3">
                     <i className="fa-solid fa-mouse mt-1 text-slate-400"></i>
-                    <span>两边的按钮都可以进行跳跃，适合双手操作。</span>
+                    <span>点击两边的圆形按钮亦可操作，适合双手或移动端体验。</span>
                   </li>
                 )}
                 <li className="flex items-start gap-3">
