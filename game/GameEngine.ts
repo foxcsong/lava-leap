@@ -41,9 +41,10 @@ export class GameEngine {
     }
 
     private resize = () => {
-        const rect = this.canvas.getBoundingClientRect();
-        this.canvas.width = rect.width;
-        this.canvas.height = rect.height;
+        // 使用 clientWidth 和 clientHeight 获取旋转前的布局尺寸
+        // 避开 getBoundingClientRect() 在 CSS transform 后的旋转包围盒尺寸
+        this.canvas.width = this.canvas.clientWidth;
+        this.canvas.height = this.canvas.clientHeight;
 
         // 计算全局缩放比例，以 1080px 高度为基准
         CONFIG.GLOBAL_SCALE = Math.max(0.35, this.canvas.height / CONFIG.REFERENCE_HEIGHT);
