@@ -39,6 +39,11 @@ const App: React.FC = () => {
   }, [handleGameOver, handleUpdateStats]);
 
   const startGame = () => {
+    // 尝试进入全屏模式以获得更好体验
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
     if (engineRef.current) {
       engineRef.current.reset();
       setGameState('PLAYING');
@@ -97,7 +102,7 @@ const App: React.FC = () => {
   }, [gameState, isPaused]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black font-sans">
+    <div className="relative w-screen h-[100dvh] overflow-hidden bg-black font-sans">
       {/* 只有在非主页状态下才可能看到画布，或者通过层级控制 */}
       <canvas 
         ref={canvasRef} 
