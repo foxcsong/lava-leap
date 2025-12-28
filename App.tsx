@@ -256,43 +256,61 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-black mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
+            <h1 className="text-3xl md:text-7xl font-black mb-1 md:mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
               LAVA DASH
             </h1>
-            <p className="text-lg md:text-xl mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
+            <p className="text-sm md:text-xl mb-3 md:mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
 
-            <div className="bg-slate-900/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700 max-w-xl mb-6 backdrop-blur-md overflow-y-auto max-h-[50vh] md:max-h-[60vh] shadow-2xl transition-all">
-              <h3 className="text-orange-400 font-bold mb-3 border-b border-slate-700 pb-1 text-lg flex justify-between items-center">
-                <span>游戏规则</span>
-                <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 md:hidden">
-                  <i className="fa-solid fa-mobile-screen-button mr-1"></i> 横屏体验最佳
-                </span>
-              </h3>
-              <ul className="text-xs md:text-sm space-y-2 md:space-y-3 text-slate-200">
-                <li className="flex items-start gap-3">
-                  <i className="fa-solid fa-keyboard mt-1 text-cyan-400"></i>
-                  <span>按住 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">空格</span>、<span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">上方向键</span> 或右侧跳跃按钮控制高度。</span>
-                </li>
-                {gameMode === GameMode.COLOR_SHIFT ? (
-                  <li className="flex items-start gap-3 border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/10">
-                    <i className="fa-solid fa-palette mt-1 text-indigo-400"></i>
-                    <span>在该模式下，<span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">Shift</span> 或 <span className="text-yellow-400 font-mono bg-black/30 px-1 rounded">Z</span> 键将触发 <span className="text-indigo-400 font-bold uppercase">变色</span>。角色颜色必须与踏上的平台颜色一致。</span>
-                  </li>
-                ) : (
+            <div className="relative group max-w-xl w-full mb-4 px-2">
+              <div className="bg-slate-900/90 p-5 md:p-8 rounded-3xl border-2 border-slate-700 backdrop-blur-md overflow-y-auto max-h-[45vh] md:max-h-[55vh] shadow-2xl transition-all custom-scrollbar relative">
+                <h3 className="text-orange-400 font-bold mb-3 border-b border-slate-700 pb-1 text-base md:text-lg flex justify-between items-center sticky top-0 bg-slate-900/40 backdrop-blur-sm z-10">
+                  <span>游戏规则</span>
+                  <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 md:hidden">
+                    <i className="fa-solid fa-mobile-screen-button mr-1"></i> 横屏体验最佳
+                  </span>
+                </h3>
+                <ul className="text-xs md:text-sm space-y-3 md:space-y-4 text-slate-200 pb-4">
                   <li className="flex items-start gap-3">
-                    <i className="fa-solid fa-mouse mt-1 text-slate-400"></i>
-                    <span>点击两边的圆形按钮亦可操作，适合双手或移动端体验。</span>
+                    <div className="w-5 h-5 flex-shrink-0 bg-cyan-500/20 rounded flex items-center justify-center">
+                      <i className="fa-solid fa-cloud-arrow-up text-[10px] text-cyan-400"></i>
+                    </div>
+                    <span>按住 <span className="text-yellow-400 font-bold">右键</span> 或 <span className="text-yellow-400 font-bold">空格</span> 越升越高。</span>
                   </li>
-                )}
-                <li className="flex items-start gap-3">
-                  <i className="fa-solid fa-triangle-exclamation mt-1 text-red-500"></i>
-                  <span>碰到 <span className="text-red-500 font-bold">岩浆</span> 或撞到平台 <span className="text-red-500 font-bold">侧面</span> 会立即失败。</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i className="fa-solid fa-gem mt-1 text-cyan-300"></i>
-                  <span><span className="text-cyan-300">蓝色宝石</span> 加分，<span className="text-purple-400 font-bold">彩色大宝石</span> 提供巨额积分。</span>
-                </li>
-              </ul>
+                  {gameMode === GameMode.COLOR_SHIFT ? (
+                    <li className="flex items-start gap-3 border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/10">
+                      <div className="w-5 h-5 flex-shrink-0 bg-indigo-500/20 rounded flex items-center justify-center">
+                        <i className="fa-solid fa-palette text-[10px] text-indigo-400"></i>
+                      </div>
+                      <span>按 <span className="text-yellow-400 font-bold">左键 / Shift / Z</span> 变色，必须与地面一致。</span>
+                    </li>
+                  ) : (
+                    <li className="flex items-start gap-3 text-slate-400">
+                      <div className="w-5 h-5 flex-shrink-0 bg-slate-500/20 rounded flex items-center justify-center">
+                        <i className="fa-solid fa-mouse text-[10px]"></i>
+                      </div>
+                      <span>两边按钮均可跳跃，支持二段跳。</span>
+                    </li>
+                  )}
+                  <li className="flex items-start gap-3 text-red-300">
+                    <div className="w-5 h-5 flex-shrink-0 bg-red-500/20 rounded flex items-center justify-center">
+                      <i className="fa-solid fa-skull text-[10px]"></i>
+                    </div>
+                    <span>避开 <span className="font-bold underline decoration-red-500">岩浆</span> 与平台侧面。</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="w-5 h-5 flex-shrink-0 bg-yellow-500/20 rounded flex items-center justify-center">
+                      <i className="fa-solid fa-gem text-[10px] text-yellow-400"></i>
+                    </div>
+                    <span>收集宝石提升积分，彩色大宝石加成丰厚。</span>
+                  </li>
+                </ul>
+              </div>
+              {/* 滚动指引提示 */}
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/80 to-transparent pointer-events-none rounded-b-3xl"></div>
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[10px] text-slate-500 flex flex-col items-center animate-bounce-subtle pointer-events-none opacity-80">
+                <span className="uppercase tracking-widest font-black">Scroll</span>
+                <i className="fa-solid fa-chevron-down mt-0.5"></i>
+              </div>
             </div>
 
             <div className="flex flex-col items-center gap-4">
