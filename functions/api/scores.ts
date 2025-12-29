@@ -4,20 +4,24 @@ export const onRequestGet = async (context) => {
     const url = new URL(request.url);
     const type = url.searchParams.get('type') || 'score'; // 'score' 或 'mileage'
     const mode = url.searchParams.get('mode');
+    const difficulty = url.searchParams.get('difficulty');
 
     try {
-        let query = '';
+        let query = 'SELECT username, score, mileage, mode, difficulty FROM scores';
+        let conditions: string[] = [];
         let params: any[] = [];
 
-        if (type === 'score') {
-            query = 'SELECT username, score, mileage, mode, difficulty FROM scores';
-        } else {
-            query = 'SELECT username, score, mileage, mode, difficulty FROM scores';
+        if (mode) {
+            conditions.push('mode = ?');
+            params.push(mode);
+        }
+        if (difficulty) {
+            conditions.push('difficulty = ?');
+            params.push(difficulty);
         }
 
-        if (mode) {
-            query += ' WHERE mode = ?';
-            params.push(mode);
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
         }
 
         query += type === 'score' ? ' ORDER BY score DESC LIMIT 10' : ' ORDER BY mileage DESC LIMIT 10';
