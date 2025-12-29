@@ -336,7 +336,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+            <div className="absolute top-4 left-4 z-50 flex items-center gap-2 hidden md:flex">
               <button
                 onClick={() => setShowLoginModal(true)}
                 className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-xs font-bold text-white transition-all flex items-center gap-2"
@@ -425,6 +425,25 @@ const App: React.FC = () => {
               >
                 立刻开跑
               </button>
+
+              {/* 移动端底部按钮 (登录和排行榜) */}
+              <div className="flex md:hidden flex-col items-center gap-2 w-full max-w-[160px] mb-2 px-2">
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="w-full bg-slate-800/80 hover:bg-slate-700/80 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm text-[10px] font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <i className="fa-solid fa-user-astronaut text-orange-400"></i>
+                  {currentUser ? currentUser.username : '账户验证'}
+                </button>
+                <button
+                  onClick={() => fetchLeaderboard('score')}
+                  className="w-full bg-slate-800/80 hover:bg-slate-700/80 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm text-[10px] font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <i className="fa-solid fa-trophy text-yellow-400"></i>
+                  全服排行
+                </button>
+              </div>
+
               <div className="flex items-center gap-2 text-slate-400 text-xs mt-2 animate-pulse overflow-hidden bg-black/40 px-3 py-1 rounded-full border border-slate-700">
                 <i className="fa-solid fa-sync fa-spin"></i>
                 <span>建议锁定屏幕自动旋转，获得最佳全屏体验</span>
