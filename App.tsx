@@ -537,7 +537,7 @@ const App: React.FC = () => {
                 <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[300px] md:max-h-[50vh]">
                 <table className="w-full text-left">
                   <thead className="sticky top-0 bg-slate-900 text-slate-500 text-[10px] uppercase font-black border-b border-slate-800">
                     <tr>
