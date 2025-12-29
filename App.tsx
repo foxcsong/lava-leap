@@ -28,6 +28,14 @@ const App: React.FC = () => {
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
 
+  // 管理后台状态
+  const [adminClickCount, setAdminClickCount] = useState(0);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminKey, setAdminKey] = useState('');
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [allScores, setAllScores] = useState<any[]>([]);
+  const [adminError, setAdminError] = useState('');
+
   const submitScore = async (finalScore: number, finalDistance: number) => {
     try {
       await fetch('/api/scores', {
@@ -215,6 +223,52 @@ const App: React.FC = () => {
       setShowLeaderboard(true);
     } catch (err) {
       console.error('Failed to fetch leaderboard');
+    }
+  };
+
+  const handleVersionClick = () => {
+    setAdminClickCount(prev => {
+      const next = prev + 1;
+      if (next >= 7) {
+        setShowAdminLogin(true);
+        return 0;
+      }
+      return next;
+    });
+    // 3秒后重置计数
+    setTimeout(() => setAdminClickCount(0), 3000);
+  };
+
+  const fetchAllScores = async () => {
+    try {
+      const res = await fetch('/api/admin', {
+        headers: { 'X-Admin-Key': adminKey }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAllScores(data);
+        setShowAdminPanel(true);
+        setShowAdminLogin(false);
+      } else {
+        setAdminError('密钥校验失败');
+      }
+    } catch (err) {
+      setAdminError('请求异常');
+    }
+  };
+
+  const deleteScore = async (id: number) => {
+    if (!window.confirm('确定要删除此条记录吗？')) return;
+    try {
+      const res = await fetch(`/api/admin?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Key': adminKey }
+      });
+      if (res.ok) {
+        setAllScores(prev => prev.filter(s => s.id !== id));
+      }
+    } catch (err) {
+      alert('删除失败');
     }
   };
 
@@ -451,7 +505,10 @@ const App: React.FC = () => {
 
               {/* 版本号显示 */}
               <div className="mt-8 flex flex-col items-center gap-1">
-                <div className="text-slate-600 text-[10px] font-mono tracking-widest uppercase">
+                <div
+                  onClick={handleVersionClick}
+                  className="text-slate-600 text-[10px] font-mono tracking-widest uppercase cursor-default select-none active:text-slate-500"
+                >
                   Version {CONFIG.VERSION}
                 </div>
                 <div className="text-slate-500 text-[10px] md:text-xs font-medium tracking-widest uppercase">
@@ -647,8 +704,81 @@ const App: React.FC = () => {
             </div>
           </>
         )}
-      </div>
-    </div>
+        {/* 管理员登录弹窗 */}
+        {showAdminLogin && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-xl z-[200] flex items-center justify-center p-4">
+            <div className="bg-slate-900 border-2 border-red-500 rounded-2xl p-6 w-full max-w-xs shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+              <h3 className="text-red-500 font-black mb-4 uppercase tracking-widest text-center">系统终端访问</h3>
+              <input
+                type="password"
+                placeholder="ENTER MASTER KEY"
+                className="w-full bg-black border border-slate-700 rounded px-3 py-2 text-white mb-4 outline-none focus:border-red-500 font-mono text-sm"
+                value={adminKey}
+                onChange={(e) => setAdminKey(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchAllScores()}
+              />
+              {adminError && <div className="text-red-500 text-[10px] mb-2 text-center font-bold italic">{adminError}</div>}
+              <div className="flex gap-2">
+                <button onClick={fetchAllScores} className="flex-1 bg-red-600 py-2 rounded font-bold text-white text-xs">执行</button>
+                <button onClick={() => setShowAdminLogin(false)} className="flex-1 bg-slate-800 py-2 rounded font-bold text-slate-400 text-xs text-center">取消</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 管理员面板 */}
+        {showAdminPanel && (
+          <div className="absolute inset-0 bg-slate-950 z-[210] flex flex-col p-4 md:p-8 animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+              <div>
+                <h2 className="text-white text-2xl font-black italic">ADMIN CONSOLE</h2>
+                <span className="text-red-500 text-[10px] font-bold uppercase tracking-widest italic">Live Data Moderation</span>
+              </div>
+              <button onClick={() => setShowAdminPanel(false)} className="bg-white/10 w-10 h-10 rounded-full text-white hover:bg-white/20">
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <table className="w-full text-xs text-slate-300">
+                <thead className="sticky top-0 bg-slate-950 text-slate-500 uppercase font-black text-[10px] border-b border-white/5">
+                  <tr>
+                    <th className="py-2 text-left">ID</th>
+                    <th className="py-2 text-left">Player</th>
+                    <th className="py-2 text-right">Score/m</th>
+                    <th className="py-2 text-center">Mode</th>
+                    <th className="py-2 text-center">Date</th>
+                    <th className="py-2 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {allScores.map(s => (
+                    <tr key={s.id} className="hover:bg-white/5">
+                      <td className="py-3 font-mono text-slate-600">{s.id}</td>
+                      <td className="py-3 font-bold text-white">{s.username}</td>
+                      <td className="py-3 text-right">
+                        <span className="text-cyan-400">{s.score}</span> / <span className="text-yellow-500">{s.mileage}m</span>
+                      </td>
+                      <td className="py-3 text-center opacity-60 font-mono text-[9px]">{s.mode}</td>
+                      <td className="py-3 text-center opacity-40 text-[9px]">{new Date(s.timestamp).toLocaleDateString()}</td>
+                      <td className="py-3 text-center">
+                        <button
+                          onClick={() => deleteScore(s.id)}
+                          className="bg-red-500/20 text-red-400 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition-all text-[10px] font-bold"
+                        >
+                          DELETE
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+      </div >
+    </div >
   );
 };
 
