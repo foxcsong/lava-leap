@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [rankType, setRankType] = useState<'score' | 'mileage'>('score');
+  const [rankFilterMode, setRankFilterMode] = useState<GameMode | 'ALL'>('ALL');
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
 
@@ -37,7 +38,8 @@ const App: React.FC = () => {
           username: currentUser?.username || '匿名玩家',
           score: finalScore,
           mileage: finalDistance,
-          mode: gameMode
+          mode: gameMode,
+          difficulty: 'NORMAL' // 预留难度字段
         })
       });
     } catch (err) {
@@ -196,12 +198,20 @@ const App: React.FC = () => {
     };
   }, [gameState, isPaused, gameMode]);
 
-  const fetchLeaderboard = async (type: 'score' | 'mileage') => {
+  const fetchLeaderboard = async (type: 'score' | 'mileage', modeFilter?: GameMode | 'ALL') => {
     try {
+      const activeMode = modeFilter !== undefined ? modeFilter : rankFilterMode;
       setRankType(type);
-      const res = await fetch(`/api/scores?type=${type}`);
+      setRankFilterMode(activeMode);
+
+      let url = `/api/scores?type=${type}`;
+      if (activeMode !== 'ALL') {
+        url += `&mode=${activeMode}`;
+      }
+
+      const res = await fetch(url);
       const data = await res.json();
-      setLeaderboardData(data);
+      setLeaderboardData(Array.isArray(data) ? data : []);
       setShowLeaderboard(true);
     } catch (err) {
       console.error('Failed to fetch leaderboard');
@@ -254,6 +264,7 @@ const App: React.FC = () => {
           className={`w-full h-full block ${gameState === 'START' ? 'invisible' : 'visible'} ${gameMode === GameMode.COLOR_SHIFT ? 'bg-slate-950' : ''}`}
         />
 
+        {/* HUD 数据显示 */}
         <div className="absolute top-4 right-4 text-white text-right drop-shadow-lg pointer-events-none select-none z-10">
           {gameState !== 'START' && (
             <>
@@ -267,6 +278,7 @@ const App: React.FC = () => {
           )}
         </div>
 
+        {/* 游戏内暂停按钮 */}
         {gameState === 'PLAYING' && (
           <button
             onClick={togglePause}
@@ -276,9 +288,10 @@ const App: React.FC = () => {
           </button>
         )}
 
+        {/* 主菜单界面 */}
         {gameState === 'START' && (
           <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white p-4 z-50">
-            {/* 角色选择 - 左上角 */}
+            {/* 角色选择与功能按钮 - 位于左上角 */}
             <div className="absolute top-4 left-4 z-[60] flex flex-col gap-2">
               <span className="text-xs text-slate-400 font-bold uppercase tracking-widest ml-1">选择角色</span>
               <div className="flex gap-2">
@@ -311,9 +324,29 @@ const App: React.FC = () => {
                   </button>
                 ))}
               </div>
+
+              {/* 功能按钮组 - 放在角色选择下方 */}
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-[10px] font-black text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <i className="fa-solid fa-user-astronaut text-orange-400"></i>
+                    {currentUser ? currentUser.username : '账户验证'}
+                  </button>
+                  <button
+                    onClick={() => fetchLeaderboard('score')}
+                    className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-[10px] font-black text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <i className="fa-solid fa-trophy text-yellow-400"></i>
+                    全服排行
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* 模式选择 - 右上角 */}
+            {/* 模式选择 - 位于右上角 */}
             <div className="absolute top-4 right-4 z-[60] flex flex-col items-end gap-2">
               <span className="text-xs text-slate-400 font-bold uppercase tracking-widest mr-1">游戏模式</span>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-sm shadow-xl">
@@ -336,28 +369,13 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="absolute top-4 left-4 z-50 flex items-center gap-2 hidden md:flex">
-              <button
-                onClick={() => setShowLoginModal(true)}
-                className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-xs font-bold text-white transition-all flex items-center gap-2"
-              >
-                <i className="fa-solid fa-user-astronaut text-orange-400"></i>
-                {currentUser ? currentUser.username : '登录/注册'}
-              </button>
-              <button
-                onClick={() => fetchLeaderboard('score')}
-                className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-xs font-bold text-white transition-all flex items-center gap-2"
-              >
-                <i className="fa-solid fa-trophy text-yellow-400"></i>
-                排行榜
-              </button>
-            </div>
-
+            {/* 主标题 */}
             <h1 className="text-3xl md:text-7xl font-black mb-0 md:mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
               LAVA DASH
             </h1>
             <p className="text-[10px] md:text-xl mb-2 md:mb-4 text-slate-300">跳跃，生存，收集宝石！</p>
 
+            {/* 游戏规则展示 */}
             <div className="relative group max-w-xs md:max-w-xl w-full mb-3 px-2">
               <div
                 ref={rulesContainerRef}
@@ -417,37 +435,21 @@ const App: React.FC = () => {
               )}
             </div>
 
+            {/* 开始按钮 */}
             <div className="flex flex-col items-center gap-4">
               <button
                 onClick={startGame}
-                onTouchStart={(e) => { e.stopPropagation(); }}
                 className="px-12 py-3 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 transition-colors rounded-full text-xl md:text-2xl font-bold uppercase tracking-widest shadow-xl transform hover:scale-105 active:scale-95 touch-manipulation z-[70] cursor-pointer"
               >
                 立刻开跑
               </button>
 
-              {/* 移动端底部按钮 (登录和排行榜) */}
-              <div className="flex md:hidden flex-col items-center gap-2 w-full max-w-[160px] mb-2 px-2">
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="w-full bg-slate-800/80 hover:bg-slate-700/80 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm text-[10px] font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg"
-                >
-                  <i className="fa-solid fa-user-astronaut text-orange-400"></i>
-                  {currentUser ? currentUser.username : '账户验证'}
-                </button>
-                <button
-                  onClick={() => fetchLeaderboard('score')}
-                  className="w-full bg-slate-800/80 hover:bg-slate-700/80 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-sm text-[10px] font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg"
-                >
-                  <i className="fa-solid fa-trophy text-yellow-400"></i>
-                  全服排行
-                </button>
-              </div>
-
               <div className="flex items-center gap-2 text-slate-400 text-xs mt-2 animate-pulse overflow-hidden bg-black/40 px-3 py-1 rounded-full border border-slate-700">
                 <i className="fa-solid fa-sync fa-spin"></i>
                 <span>建议锁定屏幕自动旋转，获得最佳全屏体验</span>
               </div>
+
+              {/* 版本号显示 */}
               <div className="mt-8 flex flex-col items-center gap-1">
                 <div className="text-slate-600 text-[10px] font-mono tracking-widest uppercase">
                   Version {CONFIG.VERSION}
@@ -463,9 +465,9 @@ const App: React.FC = () => {
         {/* 登录/注册 模态框 */}
         {showLoginModal && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-slate-900 border-2 border-orange-500 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
+            <div className="bg-slate-900 border-2 border-orange-500 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in duration-200 text-white">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">玩家验证</h2>
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter">玩家验证</h2>
                 <button onClick={() => setShowLoginModal(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
               </div>
               <form onSubmit={handleAuth} className="space-y-4">
@@ -502,19 +504,34 @@ const App: React.FC = () => {
         {/* 排行榜 模态框 */}
         {showLeaderboard && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-slate-900 border-2 border-yellow-500 rounded-3xl p-4 md:p-8 w-full max-w-2xl shadow-2xl animate-in zoom-in duration-200 max-h-[85vh] flex flex-col">
+            <div className="bg-slate-900 border-2 border-yellow-500 rounded-3xl p-4 md:p-8 w-full max-w-2xl shadow-2xl animate-in zoom-in duration-200 max-h-[85vh] flex flex-col text-white">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
-                  <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">全球英雄榜</h2>
-                  <div className="flex bg-black/40 p-1 rounded-lg border border-white/5">
-                    <button
-                      onClick={() => fetchLeaderboard('score')}
-                      className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${rankType === 'score' ? 'bg-orange-500 text-white' : 'text-slate-400'}`}
-                    >总分榜</button>
-                    <button
-                      onClick={() => fetchLeaderboard('mileage')}
-                      className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${rankType === 'mileage' ? 'bg-orange-500 text-white' : 'text-slate-400'}`}
-                    >里程榜</button>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">全球英雄榜</h2>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex bg-black/40 p-1 rounded-lg border border-white/5">
+                      <button
+                        onClick={() => fetchLeaderboard('score')}
+                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${rankType === 'score' ? 'bg-orange-500 text-white' : 'text-slate-400'}`}
+                      >总分榜</button>
+                      <button
+                        onClick={() => fetchLeaderboard('mileage')}
+                        className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${rankType === 'mileage' ? 'bg-orange-500 text-white' : 'text-slate-400'}`}
+                      >里程榜</button>
+                    </div>
+                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5">
+                      {[
+                        { id: 'ALL', label: '全部' },
+                        { id: GameMode.NORMAL, label: '普通' },
+                        { id: GameMode.COLOR_SHIFT, label: '变色' }
+                      ].map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => fetchLeaderboard(rankType, m.id as any)}
+                          className={`px-2 py-0.5 rounded text-[8px] font-bold transition-all ${rankFilterMode === m.id ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}
+                        >{m.label}</button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
@@ -554,6 +571,7 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* 游戏结束界面 */}
         {gameState === 'GAMEOVER' && (
           <div className="absolute inset-0 bg-red-900/40 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 z-[100] animate-in fade-in duration-300">
             <div className="bg-slate-900/95 p-6 md:p-10 rounded-3xl border-4 border-orange-500 shadow-2xl flex flex-col items-center max-w-sm w-full animate-in zoom-in duration-300">
@@ -578,14 +596,12 @@ const App: React.FC = () => {
               <div className="flex flex-col gap-3 w-full">
                 <button
                   onClick={startGame}
-                  onTouchEnd={(e) => { e.preventDefault(); startGame(); }}
                   className="w-full py-4 bg-orange-600 hover:bg-orange-500 transition-colors rounded-xl text-xl font-bold uppercase shadow-lg transform active:scale-95"
                 >
                   再次挑战
                 </button>
                 <button
                   onClick={goToMainMenu}
-                  onTouchEnd={(e) => { e.preventDefault(); goToMainMenu(); }}
                   className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-lg font-bold text-slate-300 transform active:scale-95"
                 >
                   返回主页
@@ -595,6 +611,7 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* 游戏进行中操作键 */}
         {gameState === 'PLAYING' && (
           <>
             {/* 左侧功能键 */}
@@ -605,7 +622,7 @@ const App: React.FC = () => {
                 onMouseLeave={(e) => { e.preventDefault(); if (gameMode !== GameMode.COLOR_SHIFT) handleJumpRelease(); }}
                 onTouchStart={(e) => { e.preventDefault(); gameMode === GameMode.COLOR_SHIFT ? handleColorShift() : handleJumpPress(); }}
                 onTouchEnd={(e) => { e.preventDefault(); if (gameMode !== GameMode.COLOR_SHIFT) handleJumpRelease(); }}
-                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 border-4 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none active:scale-95 ${gameMode === GameMode.COLOR_SHIFT ? 'border-indigo-400 bg-indigo-600/30' : 'border-white/30 bg-white/10'} ${isPaused ? 'opacity-20' : ''}`}
+                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 border-4 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none active:scale-95 text-white ${gameMode === GameMode.COLOR_SHIFT ? 'border-indigo-400 bg-indigo-600/30' : 'border-white/30 bg-white/10'} ${isPaused ? 'opacity-20' : ''}`}
               >
                 <i className={`fa-solid ${gameMode === GameMode.COLOR_SHIFT ? 'fa-palette' : 'fa-angles-up'} text-2xl md:text-3xl mb-1`}></i>
                 <span className="text-xs md:text-xl font-black uppercase tracking-widest">
@@ -622,7 +639,7 @@ const App: React.FC = () => {
                 onMouseLeave={handleJumpRelease}
                 onTouchStart={(e) => { e.preventDefault(); handleJumpPress(); }}
                 onTouchEnd={(e) => { e.preventDefault(); handleJumpRelease(); }}
-                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none active:scale-95 ${isPaused ? 'opacity-20' : ''}`}
+                className={`pointer-events-auto w-24 h-24 md:w-36 md:h-36 bg-white/10 hover:bg-white/20 active:bg-white/40 border-4 border-white/30 rounded-full flex flex-col items-center justify-center transition-all shadow-2xl backdrop-blur-sm select-none active:scale-95 text-white ${isPaused ? 'opacity-20' : ''}`}
               >
                 <i className="fa-solid fa-angles-up text-2xl md:text-3xl mb-1"></i>
                 <span className="text-xs md:text-xl font-black uppercase tracking-widest">跳跃</span>

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS scores (
     mileage REAL NOT NULL,
     score INTEGER NOT NULL,
     mode TEXT NOT NULL,
+    difficulty TEXT DEFAULT 'NORMAL',
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
