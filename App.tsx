@@ -18,13 +18,41 @@ const App: React.FC = () => {
   const [showScrollHint, setShowScrollHint] = useState(false);
   const rulesContainerRef = useRef<HTMLDivElement>(null);
 
+  // 用户与排行榜状态
+  const [currentUser, setCurrentUser] = useState<{ id: number, username: string } | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [rankType, setRankType] = useState<'score' | 'mileage'>('score');
+  const [authForm, setAuthForm] = useState({ username: '', password: '' });
+  const [authError, setAuthError] = useState('');
+
+  const submitScore = async (finalScore: number, finalDistance: number) => {
+    try {
+      await fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser?.id,
+          username: currentUser?.username || '匿名玩家',
+          score: finalScore,
+          mileage: finalDistance,
+          mode: gameMode
+        })
+      });
+    } catch (err) {
+      console.error('Score submission failed:', err);
+    }
+  };
+
   const handleGameOver = useCallback((finalScore: number, finalDistance: number, finalMaxSpeed: number) => {
     setScore(finalScore);
     setDistance(finalDistance);
     setMaxSpeed(finalMaxSpeed);
     setGameState('GAMEOVER');
     setIsPaused(false);
-  }, []);
+    submitScore(finalScore, finalDistance);
+  }, [currentUser, gameMode]);
 
   const handleUpdateStats = useCallback((currScore: number, currDistance: number, currMult: number) => {
     setScore(currScore);
@@ -168,7 +196,39 @@ const App: React.FC = () => {
     };
   }, [gameState, isPaused, gameMode]);
 
-  // 检测规则框是否溢出，以决定是否显示滚动提示
+  const fetchLeaderboard = async (type: 'score' | 'mileage') => {
+    try {
+      setRankType(type);
+      const res = await fetch(`/api/scores?type=${type}`);
+      const data = await res.json();
+      setLeaderboardData(data);
+      setShowLeaderboard(true);
+    } catch (err) {
+      console.error('Failed to fetch leaderboard');
+    }
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authForm)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentUser(data.user);
+        setShowLoginModal(false);
+      } else {
+        setAuthError(data.error || '登录失败');
+      }
+    } catch (err) {
+      setAuthError('网络请求失败');
+    }
+  };
+
   useEffect(() => {
     const checkOverflow = () => {
       if (rulesContainerRef.current) {
@@ -276,6 +336,23 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-xs font-bold text-white transition-all flex items-center gap-2"
+              >
+                <i className="fa-solid fa-user-astronaut text-orange-400"></i>
+                {currentUser ? currentUser.username : '登录/注册'}
+              </button>
+              <button
+                onClick={() => fetchLeaderboard('score')}
+                className="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm text-xs font-bold text-white transition-all flex items-center gap-2"
+              >
+                <i className="fa-solid fa-trophy text-yellow-400"></i>
+                排行榜
+              </button>
+            </div>
+
             <h1 className="text-3xl md:text-7xl font-black mb-0 md:mb-2 tracking-tighter italic text-orange-500 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,1)]">
               LAVA DASH
             </h1>
@@ -359,6 +436,100 @@ const App: React.FC = () => {
                 <div className="text-slate-500 text-[10px] md:text-xs font-medium tracking-widest uppercase">
                   开发者：高阶方陈（Nick）
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 登录/注册 模态框 */}
+        {showLoginModal && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-slate-900 border-2 border-orange-500 rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">玩家验证</h2>
+                <button onClick={() => setShowLoginModal(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+              </div>
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 mb-1 block">用户名</label>
+                  <input
+                    type="text"
+                    value={authForm.username}
+                    onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
+                    className="w-full bg-black/40 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-orange-500 transition-all outline-none"
+                    placeholder="输入名字（不存在则自动创建）"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 mb-1 block">密码</label>
+                  <input
+                    type="password"
+                    value={authForm.password}
+                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                    className="w-full bg-black/40 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-orange-500 transition-all outline-none"
+                    placeholder="••••••••"
+                  />
+                </div>
+                {authError && <p className="text-red-500 text-xs font-bold text-center">{authError}</p>}
+                <button type="submit" className="w-full bg-orange-600 hover:bg-orange-500 py-3 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95">确认进入</button>
+                <div className="text-center">
+                  <button type="button" onClick={() => setShowLoginModal(false)} className="text-slate-500 text-xs hover:text-slate-300">先不登录了，匿名游玩</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 排行榜 模态框 */}
+        {showLeaderboard && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-slate-900 border-2 border-yellow-500 rounded-3xl p-4 md:p-8 w-full max-w-2xl shadow-2xl animate-in zoom-in duration-200 max-h-[85vh] flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">全球英雄榜</h2>
+                  <div className="flex bg-black/40 p-1 rounded-lg border border-white/5">
+                    <button
+                      onClick={() => fetchLeaderboard('score')}
+                      className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${rankType === 'score' ? 'bg-orange-500 text-white' : 'text-slate-400'}`}
+                    >总分榜</button>
+                    <button
+                      onClick={() => fetchLeaderboard('mileage')}
+                      className={`px-3 py-1 rounded text-[10px] font-bold transition-all ${rankType === 'mileage' ? 'bg-orange-500 text-white' : 'text-slate-400'}`}
+                    >里程榜</button>
+                  </div>
+                </div>
+                <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                <table className="w-full text-left">
+                  <thead className="sticky top-0 bg-slate-900 text-slate-500 text-[10px] uppercase font-black border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 pl-2">排名</th>
+                      <th className="py-2">玩家</th>
+                      <th className="py-2">{rankType === 'score' ? '最高总分' : '最远里程'}</th>
+                      <th className="py-2">模式</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-200">
+                    {leaderboardData.map((item, idx) => (
+                      <tr key={idx} className={`border-b border-slate-800/50 ${idx < 3 ? 'bg-white/5' : ''}`}>
+                        <td className="py-3 pl-2">
+                          <span className={`w-6 h-6 rounded flex items-center justify-center font-black ${idx === 0 ? 'bg-yellow-400 text-black' : idx === 1 ? 'bg-slate-300 text-black' : idx === 2 ? 'bg-orange-400 text-black' : 'text-slate-500'}`}>
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td className="py-3 font-bold">{item.username}</td>
+                        <td className="py-3 text-orange-400 font-mono">{rankType === 'score' ? Math.floor(item.score).toLocaleString() : Math.floor(item.mileage).toLocaleString() + 'm'}</td>
+                        <td className="py-3">
+                          <span className={`text-[8px] px-2 py-0.5 rounded border uppercase font-bold ${item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
+                            {item.mode === 'COLOR_SHIFT' ? '变色' : '普通'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
