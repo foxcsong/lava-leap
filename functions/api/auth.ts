@@ -13,6 +13,18 @@ export const onRequestPost = async (context) => {
             return new Response(JSON.stringify({ error: 'Username and password required' }), { status: 400 });
         }
 
+        // 1. 基本格式检查 (2-12位，不含特殊字符)
+        const nameRegex = /^[a-zA-Z0-9\u4e00-\u9fa5]{2,12}$/;
+        if (!nameRegex.test(username)) {
+            return new Response(JSON.stringify({ error: '名字需为2-12位中英文或数字' }), { status: 400 });
+        }
+
+        // 2. 敏感词简单过滤 (生产环境建议接入专业API，此处演示基础逻辑)
+        const forbiddenWords = ['admin', 'manager', 'root', 'system', 'shit', 'fuck', 'sb', 'bitch', 'tmd', 'nmd'];
+        if (forbiddenWords.some(word => username.toLowerCase().includes(word))) {
+            return new Response(JSON.stringify({ error: '名字包含不当内容，请换一个' }), { status: 400 });
+        }
+
         // 尝试查找用户
         const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
 
