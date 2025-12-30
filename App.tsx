@@ -37,6 +37,8 @@ const App: React.FC = () => {
   const [adminError, setAdminError] = useState('');
 
   const submitScore = async (finalScore: number, finalDistance: number) => {
+    if (!currentUser) return; // 匿名玩家不记录成绩到数据库
+
     try {
       await fetch('/api/scores', {
         method: 'POST',
@@ -284,6 +286,7 @@ const App: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         setCurrentUser(data.user);
+        localStorage.setItem('lava_leap_user', JSON.stringify(data.user));
         setShowLoginModal(false);
       } else {
         setAuthError(data.error || '登录失败');
@@ -310,6 +313,17 @@ const App: React.FC = () => {
     }
   }, [gameState, gameMode]);
 
+  useEffect(() => {
+    const savedUser = localStorage.getItem('lava_leap_user');
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('lava_leap_user');
+      }
+    }
+  }, []);
+
   return (
     <div className="w-full h-full bg-black flex items-center justify-center overflow-hidden">
       <div className="relative w-full h-full landscape:w-[92vw] landscape:h-[85vh] bg-black shadow-2xl overflow-hidden font-sans">
@@ -332,14 +346,30 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* 游戏内暂停按钮 */}
-        {gameState === 'PLAYING' && (
-          <button
-            onClick={togglePause}
-            className="absolute top-4 left-4 w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg flex items-center justify-center text-white transition-all shadow-lg backdrop-blur-sm z-20"
-          >
-            <i className={`fa-solid ${isPaused ? 'fa-play' : 'fa-pause'} text-xl`}></i>
-          </button>
+        {/* 游戏内 HUD: 暂停与身份卡片 */}
+        {(gameState === 'PLAYING' || gameState === 'GAMEOVER') && (
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-3">
+            {gameState === 'PLAYING' && (
+              <button
+                onClick={togglePause}
+                className="w-12 h-12 bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg flex items-center justify-center text-white transition-all shadow-lg backdrop-blur-sm"
+              >
+                <i className={`fa-solid ${isPaused ? 'fa-play' : 'fa-pause'} text-xl`}></i>
+              </button>
+            )}
+
+            <div className="bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${currentUser ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`}></div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-white leading-none uppercase tracking-tighter">
+                  {currentUser ? currentUser.username : '匿名用户'}
+                </span>
+                {!currentUser && (
+                  <span className="text-[8px] text-slate-400 font-bold leading-none mt-0.5">成绩不入榜</span>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* 主菜单界面 */}
