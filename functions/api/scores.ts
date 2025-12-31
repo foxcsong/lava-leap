@@ -7,29 +7,40 @@ export const onRequestGet = async (context) => {
   const difficulty = url.searchParams.get('difficulty');
 
   try {
-    let query = '';
     const orderBy = type === 'score' ? 'score' : 'mileage';
 
-    // --- 深度兼容性匹配逻辑 (换个思路：相信字面匹配，不依赖绑定类型) ---
-    const isColorShift = (mode === '1' || mode === 'COLOR_SHIFT');
-    const isEasy = (difficulty === 'EASY');
+    // --- 极致兼容性逻辑 (v2.4.9) ---
+    // 我们显式处理各种参数情况，确保老版本前端发送的 ALL 或 NORMAL 也能正确工作
+    let whereClauses: string[] = [];
 
-    // 构建普通模式(0)匹配集：NULL, '', '0', 0, 'NORMAL'
-    // 构建普通难度(NORMAL)匹配集：NULL, '', 'NORMAL', '0', 0
-    const modeMatch = isColorShift ?
-      "(TRIM(mode) = '1' OR mode = 1 OR UPPER(TRIM(mode)) = 'COLOR_SHIFT')" :
-      "(mode IS NULL OR TRIM(mode) = '' OR TRIM(mode) = '0' OR mode = 0 OR UPPER(TRIM(mode)) = 'NORMAL')";
+    // 模式过滤逻辑
+    if (mode && mode !== 'ALL') {
+      if (mode === '1' || mode === 'COLOR_SHIFT') {
+        whereClauses.push("(mode = '1' OR mode = 'COLOR_SHIFT')");
+      } else {
+        // 覆盖所有“普通模式”的历史变体
+        whereClauses.push("(mode IS NULL OR mode = '0' OR mode = 'NORMAL' OR mode = '')");
+      }
+    }
 
-    const diffMatch = isEasy ?
-      "(UPPER(TRIM(difficulty)) = 'EASY')" :
-      "(difficulty IS NULL OR TRIM(difficulty) = '' OR UPPER(TRIM(difficulty)) = 'NORMAL' OR TRIM(difficulty) = '0' OR difficulty = 0)";
+    // 难度过滤逻辑
+    if (difficulty && difficulty !== 'ALL') {
+      if (difficulty === 'EASY') {
+        whereClauses.push("(difficulty = 'EASY')");
+      } else {
+        // 覆盖所有“普通难度”的历史变体
+        whereClauses.push("(difficulty IS NULL OR difficulty = 'NORMAL' OR difficulty = '' OR difficulty = '0')");
+      }
+    }
 
-    query = `
+    const whereSection = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const query = `
       SELECT username, score, mileage, mode, difficulty
       FROM (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY username ORDER BY ${orderBy} DESC) as rn
         FROM scores
-        WHERE ${modeMatch} AND ${diffMatch}
+        ${whereSection}
       )
       WHERE rn = 1
       ORDER BY ${orderBy} DESC
