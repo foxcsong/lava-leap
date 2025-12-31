@@ -1,6 +1,6 @@
 
 export const CONFIG = {
-    VERSION: '2.5.1',
+    VERSION: '2.5.2',
     // 基础物理参数 (对应 1080p 参考高度)
     REFERENCE_HEIGHT: 1080,
 

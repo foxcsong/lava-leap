@@ -9,23 +9,27 @@ export const onRequestGet = async (context: any) => {
   try {
     const orderBy = type === 'score' ? 'score' : 'mileage';
 
-    // --- 直接并行匹配逻辑 (v2.5.1) ---
+    // --- 直接并行匹配逻辑 (v2.5.2) ---
     const modeIsColor = (mode === '1' || mode === 'COLOR_SHIFT');
     const diffIsEasy = (difficulty === 'EASY');
 
     const modeClause = modeIsColor ?
-      "(mode = '1' OR mode = 'COLOR_SHIFT')" :
-      "(mode IS NULL OR mode = '0' OR mode = 0 OR mode = 'NORMAL' OR mode = '')";
+      "(TRIM(mode) = '1' OR TRIM(mode) = 'COLOR_SHIFT')" :
+      "(mode IS NULL OR TRIM(mode) = '' OR TRIM(mode) = '0' OR mode = 0 OR TRIM(mode) = 'NORMAL')";
 
     const diffClause = diffIsEasy ?
-      "(difficulty = 'EASY')" :
-      "(difficulty IS NULL OR difficulty = 'NORMAL' OR difficulty = '' OR difficulty = '0' OR difficulty = 0)";
+      "(TRIM(difficulty) = 'EASY')" :
+      "(difficulty IS NULL OR TRIM(difficulty) = 'NORMAL' OR TRIM(difficulty) = '' OR TRIM(difficulty) = '0' OR difficulty = 0)";
 
-    // 移除分区聚合，全量展示前 50 名，诊断所有数据记录
+    // 恢复分区聚合：同一个用户在同模式同难度下只保留最高纪录
     const query = `
       SELECT username, score, mileage, mode, difficulty
-      FROM scores
-      WHERE ${modeClause} AND ${diffClause}
+      FROM (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY username ORDER BY ${orderBy} DESC) as rn
+        FROM scores
+        WHERE ${modeClause} AND ${diffClause}
+      )
+      WHERE rn = 1
       ORDER BY ${orderBy} DESC
       LIMIT 50
     `;
