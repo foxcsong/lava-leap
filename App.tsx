@@ -230,7 +230,8 @@ const App: React.FC = () => {
       setRankFilterMode(activeMode);
       setRankFilterDiff(activeDiff);
 
-      let url = `/api/scores?type=${type}&mode=${activeMode}&difficulty=${activeDiff}`;
+      // 增加时间戳防止请求被缓存
+      let url = `/api/scores?type=${type}&mode=${activeMode}&difficulty=${activeDiff}&_t=${Date.now()}`;
 
       const res = await fetch(url);
       const data = await res.json();
