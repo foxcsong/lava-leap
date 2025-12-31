@@ -587,19 +587,44 @@ const App: React.FC = () => {
                     <span>按住 <span className="text-yellow-400 font-bold">右键</span> 或 <span className="text-yellow-400 font-bold">空格</span> 越升越高。</span>
                   </li>
                   {gameMode === GameMode.COLOR_SHIFT ? (
-                    <li className="flex items-start gap-3 border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/10">
-                      <div className="w-5 h-5 flex-shrink-0 bg-indigo-500/20 rounded flex items-center justify-center">
-                        <i className="fa-solid fa-palette text-[10px] text-indigo-400"></i>
-                      </div>
-                      <span>按 <span className="text-yellow-400 font-bold">左键 / Shift / Z</span> 变色，必须与地面一致。</span>
-                    </li>
+                    <>
+                      <li className="flex items-start gap-3 border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/10">
+                        <div className="w-5 h-5 flex-shrink-0 bg-indigo-500/20 rounded flex items-center justify-center">
+                          <i className="fa-solid fa-palette text-[10px] text-indigo-400"></i>
+                        </div>
+                        <span>按 <span className="text-yellow-400 font-bold">左键 / Shift / Z</span> 变色，必须与地面一致。</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-cyan-300 italic">
+                        <div className="w-5 h-5 flex-shrink-0 bg-cyan-500/20 rounded flex items-center justify-center">
+                          <i className="fa-solid fa-bolt text-[10px]"></i>
+                        </div>
+                        <span>速度恒定 <span className="font-bold">1.5x</span>，极度考验反应速度。</span>
+                      </li>
+                    </>
                   ) : (
-                    <li className="flex items-start gap-3 text-slate-400">
-                      <div className="w-5 h-5 flex-shrink-0 bg-slate-500/20 rounded flex items-center justify-center">
-                        <i className="fa-solid fa-mouse text-[10px]"></i>
-                      </div>
-                      <span>两边按钮均可跳跃，支持二段跳。</span>
-                    </li>
+                    <>
+                      <li className="flex items-start gap-3 text-slate-400">
+                        <div className="w-5 h-5 flex-shrink-0 bg-slate-500/20 rounded flex items-center justify-center">
+                          <i className="fa-solid fa-mouse text-[10px]"></i>
+                        </div>
+                        <span>两边按钮均可跳跃，支持二段跳。</span>
+                      </li>
+                      {gameDifficulty === Difficulty.EASY ? (
+                        <li className="flex items-start gap-3 text-green-400 border-l-2 border-green-500 pl-3 py-1 bg-green-500/10">
+                          <div className="w-5 h-5 flex-shrink-0 bg-green-500/20 rounded flex items-center justify-center">
+                            <i className="fa-solid fa-heart text-[10px]"></i>
+                          </div>
+                          <span>拥有 <span className="font-bold">3 命</span> 机会，拾取生命宝石可复活。</span>
+                        </li>
+                      ) : (
+                        <li className="flex items-start gap-3 text-orange-300">
+                          <div className="w-5 h-5 flex-shrink-0 bg-orange-500/20 rounded flex items-center justify-center">
+                            <i className="fa-solid fa-skull-crossbones text-[10px]"></i>
+                          </div>
+                          <span>只有 <span className="font-bold text-red-400">1 命</span> 机会，掉落即结束。</span>
+                        </li>
+                      )}
+                    </>
                   )}
                   <li className="flex items-start gap-3 text-red-300">
                     <div className="w-5 h-5 flex-shrink-0 bg-red-500/20 rounded flex items-center justify-center">
