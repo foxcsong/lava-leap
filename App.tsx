@@ -273,6 +273,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleMigrateData = async () => {
+    if (!window.confirm("确定要对所有历史记录进行格式归一化吗？（将 0.0 与 0 统一）")) return;
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+        body: JSON.stringify({ action: 'MIGRATE' })
+      });
+      if (res.ok) {
+        alert("历史数据清洗完成！");
+        fetchAllScores();
+      } else {
+        const error = await res.json();
+        alert("迁移失败: " + (error.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert("网络错误");
+    }
+  };
+
   const deleteScore = async (id: number) => {
     if (!window.confirm('确定要删除此条记录吗？')) return;
     try {
@@ -845,6 +865,23 @@ const App: React.FC = () => {
               </div>
               <button onClick={() => setShowAdminPanel(false)} className="bg-white/10 w-10 h-10 rounded-full text-white hover:bg-white/20">
                 <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={handleMigrateData}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
+              >
+                <i className="fa-solid fa-wand-magic-sparkles"></i>
+                一键同步历史数据 (0.0 统一)
+              </button>
+              <button
+                onClick={fetchAllScores}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
+              >
+                <i className="fa-solid fa-sync"></i>
+                刷新数据
               </button>
             </div>
 

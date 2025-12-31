@@ -15,11 +15,11 @@ export const onRequestGet = async (context: any) => {
 
     const modeClause = modeIsColor ?
       "(TRIM(mode) = '1' OR TRIM(mode) = 'COLOR_SHIFT')" :
-      "(mode IS NULL OR TRIM(mode) = '' OR TRIM(mode) = '0' OR mode = 0 OR TRIM(mode) = 'NORMAL')";
+      "(mode IS NULL OR TRIM(mode) = '' OR TRIM(mode) = '0' OR mode = 0 OR TRIM(mode) = '0.0' OR TRIM(mode) = 'NORMAL')";
 
     const diffClause = diffIsEasy ?
       "(TRIM(difficulty) = 'EASY')" :
-      "(difficulty IS NULL OR TRIM(difficulty) = 'NORMAL' OR TRIM(difficulty) = '' OR TRIM(difficulty) = '0' OR difficulty = 0)";
+      "(difficulty IS NULL OR TRIM(difficulty) = 'NORMAL' OR TRIM(difficulty) = '' OR TRIM(difficulty) = '0' OR difficulty = 0 OR TRIM(difficulty) = '0.0')";
 
     // 恢复分区聚合：同一个用户在同模式同难度下只保留最高纪录
     const query = `

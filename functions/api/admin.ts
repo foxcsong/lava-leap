@@ -27,6 +27,26 @@ export const onRequest = async (context) => {
             }
         }
 
+        if (method === 'POST') {
+            const { action } = await request.json();
+            if (action === 'MIGRATE') {
+                // 将所有 0.0, NULL, 空串等格式归一化为标准的 0 (Normal)
+                await db.prepare(`
+                    UPDATE scores 
+                    SET mode = '0' 
+                    WHERE mode IS NULL OR mode = '' OR mode = '0.0' OR mode = 0 OR mode = 'NORMAL'
+                `).run();
+
+                await db.prepare(`
+                    UPDATE scores 
+                    SET difficulty = 'NORMAL' 
+                    WHERE difficulty IS NULL OR difficulty = '' OR difficulty = '0.0' OR difficulty = 0 OR difficulty = 'NORMAL'
+                `).run();
+
+                return new Response(JSON.stringify({ message: 'Migration successful' }), { status: 200 });
+            }
+        }
+
         return new Response('Not Implemented', { status: 501 });
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500 });
