@@ -2,41 +2,30 @@ export const onRequestGet = async (context: any) => {
   const { request, env } = context;
   const db = env['game-db'];
   const url = new URL(request.url);
-  const type = url.searchParams.get('type') || 'score'; // 'score' 或 'mileage'
+  const type = url.searchParams.get('type') || 'score';
   const mode = url.searchParams.get('mode');
   const difficulty = url.searchParams.get('difficulty');
 
   try {
     const orderBy = type === 'score' ? 'score' : 'mileage';
 
-    // --- 极致兼容性逻辑 (v2.5.0) ---
-    // 我们显式构建查询分支，不再依赖数据库的隐式转换
-    let modeCondition = "";
-    if (mode === '1' || mode === 'COLOR_SHIFT') {
-      // 匹配变色模式
-      modeCondition = "(mode = '1' OR mode = 'COLOR_SHIFT')";
-    } else {
-      // 匹配普通模式（包括所有历史遗留状态）
-      modeCondition = "(mode IS NULL OR mode = '0' OR mode = 0 OR mode = 'NORMAL' OR mode = '')";
-    }
+    // --- 直接并行匹配逻辑 (v2.5.1) ---
+    const modeIsColor = (mode === '1' || mode === 'COLOR_SHIFT');
+    const diffIsEasy = (difficulty === 'EASY');
 
-    let diffCondition = "";
-    if (difficulty === 'EASY') {
-      // 匹配简单难度
-      diffCondition = "(difficulty = 'EASY')";
-    } else {
-      // 匹配普通难度（包括所有历史遗留状态）
-      diffCondition = "(difficulty IS NULL OR difficulty = 'NORMAL' OR difficulty = '' OR difficulty = '0' OR difficulty = 0)";
-    }
+    const modeClause = modeIsColor ?
+      "(mode = '1' OR mode = 'COLOR_SHIFT')" :
+      "(mode IS NULL OR mode = '0' OR mode = 0 OR mode = 'NORMAL' OR mode = '')";
 
+    const diffClause = diffIsEasy ?
+      "(difficulty = 'EASY')" :
+      "(difficulty IS NULL OR difficulty = 'NORMAL' OR difficulty = '' OR difficulty = '0' OR difficulty = 0)";
+
+    // 移除分区聚合，全量展示前 50 名，诊断所有数据记录
     const query = `
       SELECT username, score, mileage, mode, difficulty
-      FROM (
-        SELECT *, ROW_NUMBER() OVER (PARTITION BY username ORDER BY ${orderBy} DESC) as rn
-        FROM scores
-        WHERE ${modeCondition} AND ${diffCondition}
-      )
-      WHERE rn = 1
+      FROM scores
+      WHERE ${modeClause} AND ${diffClause}
       ORDER BY ${orderBy} DESC
       LIMIT 50
     `;

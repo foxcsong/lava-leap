@@ -28,6 +28,7 @@ export class GameEngine {
     private lastX: number = 0;
     private lastY: number = 0;
     private difficulty: Difficulty = Difficulty.NORMAL;
+    private lastLifeGemDistance: number = 0;
     private respawnTimer: number = 0;
 
     constructor(
@@ -247,10 +248,13 @@ export class GameEngine {
                 setColor = '#ef4444';
             }
 
-            // 简单模式生命宝石补给
-            if (this.difficulty === Difficulty.EASY && Math.random() < 0.05) {
+            // 简单模式生命宝石补给 (每 2000m 左右出一颗)
+            if (this.difficulty === Difficulty.EASY &&
+                (this.distance - this.lastLifeGemDistance > 2000) &&
+                Math.random() < 0.2) { // 给 20% 概率触发，不保证每正好 2000m 出，增加随机感
                 setType = GemType.LIFE;
                 setColor = '#22c55e'; // 绿色心形
+                this.lastLifeGemDistance = this.distance;
             }
 
             const waveOffset = Math.sin(i * 1.0) * (setType === GemType.LARGE ? 40 : 30) * CONFIG.GLOBAL_SCALE;

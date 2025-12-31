@@ -68,7 +68,7 @@ const App: React.FC = () => {
     setGameState('GAMEOVER');
     setIsPaused(false);
     submitScore(finalScore, finalDistance);
-  }, [currentUser, gameMode]);
+  }, [currentUser, gameMode, gameDifficulty]);
 
   const handleUpdateStats = useCallback((currScore: number, currDistance: number, currMult: number, currLives: number, currCountdown: number) => {
     setScore(currScore);
