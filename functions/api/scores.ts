@@ -12,12 +12,13 @@ export const onRequestGet = async (context) => {
         const orderBy = type === 'score' ? 'score' : 'mileage';
 
         // 使用子查询确保每个 username 只有最高记录出现在榜单上
+        // 并通过 COALESCE 处理旧版本中为 NULL 的 difficulty 字段，将其视为 'NORMAL'
         query = `
       SELECT username, score, mileage, mode, difficulty
       FROM (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY username ORDER BY ${orderBy} DESC) as rn
         FROM scores
-        ${mode || difficulty ? 'WHERE ' + [mode ? 'mode = ?' : '', difficulty ? 'difficulty = ?' : ''].filter(Boolean).join(' AND ') : ''}
+        ${mode || difficulty ? 'WHERE ' + [mode ? 'mode = ?' : '', difficulty ? "COALESCE(difficulty, 'NORMAL') = ?" : ''].filter(Boolean).join(' AND ') : ''}
       )
       WHERE rn = 1
       ORDER BY ${orderBy} DESC
