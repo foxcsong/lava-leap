@@ -698,93 +698,89 @@ const App: React.FC = () => {
 
         {/* 排行榜 模态框 */}
         {showLeaderboard && (
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-slate-900 border-2 border-yellow-500 rounded-3xl p-4 md:p-8 w-full max-w-2xl shadow-2xl animate-in zoom-in duration-200 max-h-[85vh] flex flex-col text-white">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">全球英雄榜</h2>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
-                      {[
-                        { id: 'score', label: '最高分数' },
-                        { id: 'mileage', label: '最远里程' },
-                      ].map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => fetchLeaderboard(t.id as any)}
-                          className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${rankType === t.id ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400'}`}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-200">
+            <div className="bg-slate-900 border-2 border-yellow-500 rounded-3xl p-3 md:p-6 w-full max-w-2xl shadow-2xl animate-in zoom-in duration-200 max-h-[92vh] flex flex-col text-white">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter shrink-0 text-yellow-500">全球英雄榜</h2>
+                  <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+                    {[
+                      { id: 'score', label: '最高分' },
+                      { id: 'mileage', label: '最远距' },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => fetchLeaderboard(t.id as any)}
+                        className={`px-3 py-1 rounded-md text-[9px] md:text-[10px] font-black transition-all ${rankType === t.id ? 'bg-orange-600 text-white shadow-md' : 'text-slate-400'}`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+                <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white p-2"><i className="fa-solid fa-xmark text-xl"></i></button>
               </div>
 
-              {/* 模式过滤标签 */}
-              <div className="flex gap-2 mb-4">
-                {[
-                  { id: GameMode.NORMAL, label: '普通模式' },
-                  { id: GameMode.COLOR_SHIFT, label: '变色模式' },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => fetchLeaderboard(rankType, m.id as any, rankFilterDiff)}
-                    className={`px-3 py-1 rounded-full text-[10px] font-black border transition-all ${rankFilterMode === m.id ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+              {/* 过滤标签行 - 更加紧凑 */}
+              <div className="flex flex-wrap gap-2 mb-3 items-center">
+                <div className="flex gap-1.5">
+                  {[
+                    { id: GameMode.NORMAL, label: '普通模式' },
+                    { id: GameMode.COLOR_SHIFT, label: '变色模式' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => fetchLeaderboard(rankType, m.id as any, rankFilterDiff)}
+                      className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black border transition-all ${rankFilterMode === m.id ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="h-4 w-[1px] bg-white/10 hidden md:block"></div>
+                <div className="flex gap-1.5">
+                  {[
+                    { id: Difficulty.NORMAL, label: '普通难度' },
+                    { id: Difficulty.EASY, label: '简单难度' },
+                  ].map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => fetchLeaderboard(rankType, rankFilterMode, d.id)}
+                      className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black border transition-all ${rankFilterDiff === d.id
+                        ? 'bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]'
+                        : 'border-white/10 text-slate-500 hover:border-white/30'
+                        }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* 难度过滤标签 */}
-              <div className="flex gap-2 mb-6 animate-in fade-in slide-in-from-top duration-300">
-                {[
-                  { id: Difficulty.NORMAL, label: '普通难度' },
-                  { id: Difficulty.EASY, label: '简单难度' },
-                ].map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => fetchLeaderboard(rankType, rankFilterMode, d.id)}
-                    className={`px-3 py-1 rounded-full text-[10px] font-black border transition-all ${rankFilterDiff === d.id
-                      ? 'bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]'
-                      : 'border-white/10 text-slate-500 hover:border-white/30'
-                      }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[300px] md:max-h-[50vh]">
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[45vh] md:max-h-[55vh]">
                 <table className="w-full text-left">
-                  <thead className="sticky top-0 bg-slate-900 text-slate-500 text-[10px] uppercase font-black border-b border-slate-800">
+                  <thead className="sticky top-0 bg-slate-900 text-slate-500 text-[9px] md:text-[10px] uppercase font-black border-b border-slate-800 z-10">
                     <tr>
-                      <th className="py-2 pl-2">排名</th>
+                      <th className="py-2 pl-2 w-12">排名</th>
                       <th className="py-2">玩家</th>
                       <th className="py-2">{rankType === 'score' ? '最高总分' : '最远里程'}</th>
-                      <th className="py-2">模式</th>
+                      <th className="py-2 text-center">分类</th>
                     </tr>
                   </thead>
                   <tbody className="text-slate-200">
                     {leaderboardData.map((item, idx) => (
-                      <tr key={idx} className={`border-b border-slate-800/50 ${idx < 3 ? 'bg-white/5' : ''}`}>
-                        <td className="py-3 pl-2">
-                          <span className={`w-6 h-6 rounded flex items-center justify-center font-black ${idx === 0 ? 'bg-yellow-400 text-black' : idx === 1 ? 'bg-slate-300 text-black' : idx === 2 ? 'bg-orange-400 text-black' : 'text-slate-500'}`}>
+                      <tr key={idx} className={`border-b border-slate-800/40 ${idx < 3 ? 'bg-white/5' : ''}`}>
+                        <td className="py-2 pl-2">
+                          <span className={`w-5 h-5 md:w-6 md:h-6 rounded flex items-center justify-center text-[10px] md:text-xs font-black ${idx === 0 ? 'bg-yellow-400 text-black' : idx === 1 ? 'bg-slate-300 text-black' : idx === 2 ? 'bg-orange-400 text-black' : 'text-slate-500'}`}>
                             {idx + 1}
                           </span>
                         </td>
-                        <td className="py-3 font-bold">{item.username}</td>
-                        <td className="py-3 text-orange-400 font-mono">{rankType === 'score' ? Math.floor(item.score).toLocaleString() : Math.floor(item.mileage).toLocaleString() + 'm'}</td>
-                        <td className="py-3 text-center">
+                        <td className="py-2 font-bold text-xs md:text-sm truncate max-w-[80px] md:max-w-none">{item.username}</td>
+                        <td className="py-2 text-orange-400 font-mono text-[10px] md:text-sm">{rankType === 'score' ? Math.floor(item.score).toLocaleString() : Math.floor(item.mileage).toLocaleString() + 'm'}</td>
+                        <td className="py-2">
                           <div className="flex flex-col items-center">
-                            <span className={`text-[8px] px-2 py-0.5 rounded border uppercase font-black tracking-tighter ${item.mode == 1 || item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
+                            <span className={`text-[7px] md:text-[8px] px-1 md:px-2 py-0.5 rounded border uppercase font-black tracking-tighter ${item.mode == 1 || item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
                               {item.mode == 1 || item.mode === 'COLOR_SHIFT' ? '变色' : '普通'}
-                            </span>
-                            <span className={`text-[7px] font-bold mt-0.5 italic ${item.difficulty === 'EASY' ? 'text-green-500' : 'text-slate-600'}`}>
-                              {item.difficulty === 'EASY' ? '简单' : '普通'}
                             </span>
                           </div>
                         </td>
