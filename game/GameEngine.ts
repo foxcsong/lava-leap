@@ -1,6 +1,6 @@
 
 import { CONFIG } from './Config';
-import { Player, Platform, Gem, Particle, GemType, PlayerSkin, GameMode, ColorType } from './Entities';
+import { Player, Platform, Gem, Particle, GemType, PlayerSkin, GameMode, ColorType, Difficulty } from './Entities';
 import { sounds } from './SoundManager';
 
 export class GameEngine {
@@ -25,20 +25,23 @@ export class GameEngine {
     private mode: GameMode = GameMode.NORMAL;
 
     private cameraY: number = 0;
-
     private lastX: number = 0;
     private lastY: number = 0;
+    private difficulty: Difficulty = Difficulty.NORMAL;
+    private respawnTimer: number = 0;
 
     constructor(
         canvas: HTMLCanvasElement,
         private onGameOver: (score: number, distance: number, maxSpeed: number) => void,
-        private onUpdateStats: (score: number, distance: number, speedMult: number) => void,
+        private onUpdateStats: (score: number, distance: number, speedMult: number, lives: number, countdown: number) => void,
         initialSkin: PlayerSkin = PlayerSkin.DEFAULT,
-        initialMode: GameMode = GameMode.NORMAL
+        initialMode: GameMode = GameMode.NORMAL,
+        initialDifficulty: Difficulty = Difficulty.NORMAL
     ) {
         this.canvas = canvas;
         this.skin = initialSkin;
         this.mode = initialMode;
+        this.difficulty = initialDifficulty;
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not get canvas context');
         this.ctx = ctx;
@@ -56,6 +59,14 @@ export class GameEngine {
     public setMode(mode: GameMode) {
         this.mode = mode;
         if (this.player) this.player.mode = mode;
+    }
+
+    public setDifficulty(difficulty: Difficulty) {
+        this.difficulty = difficulty;
+        if (this.player) {
+            this.player.difficulty = difficulty;
+            this.player.lives = difficulty === Difficulty.EASY ? 3 : 1;
+        }
     }
 
     public switchPlayerColor() {
@@ -135,12 +146,13 @@ export class GameEngine {
         this.lastX = startX + startWidth;
         this.lastY = startY;
 
-        this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE, this.skin, this.mode);
+        this.player = new Player(this.canvas.width * 0.3, startY - 250 * CONFIG.GLOBAL_SCALE, this.skin, this.mode, this.difficulty);
         if (this.mode === GameMode.COLOR_SHIFT) {
             this.player.colorType = startColor;
         }
         this.player.vy = 0;
         this.player.resetJump();
+        this.respawnTimer = 0;
 
         this.cameraY = this.player.y - this.canvas.height * 0.5;
 
@@ -235,6 +247,12 @@ export class GameEngine {
                 setColor = '#ef4444';
             }
 
+            // 简单模式生命宝石补给
+            if (this.difficulty === Difficulty.EASY && Math.random() < 0.05) {
+                setType = GemType.LIFE;
+                setColor = '#22c55e'; // 绿色心形
+            }
+
             const waveOffset = Math.sin(i * 1.0) * (setType === GemType.LARGE ? 40 : 30) * CONFIG.GLOBAL_SCALE;
             const gy = onTop ? p.y - 110 * CONFIG.GLOBAL_SCALE + waveOffset : p.y + p.h + 110 * CONFIG.GLOBAL_SCALE + waveOffset;
             this.gems.push(new Gem(gx, gy, setType, setColor));
@@ -261,7 +279,22 @@ export class GameEngine {
         if (this.mode === GameMode.COLOR_SHIFT) {
             this.speedMultiplier = 1.5; // 变色模式恒定 1.5x 速度
         } else {
-            this.speedMultiplier = Math.min(4.5, 1 + (effectiveDistanceForSpeed / (2800)));
+            const slope = this.difficulty === Difficulty.EASY ? 5600 : 2800; // 简单模式速度增加慢一倍
+            this.speedMultiplier = Math.min(4.5, 1 + (effectiveDistanceForSpeed / slope));
+        }
+
+        // 倒计时逻辑
+        if (this.respawnTimer > 0) {
+            const oldSec = Math.ceil(this.respawnTimer);
+            this.respawnTimer -= deltaTime / 1000;
+            const newSec = Math.ceil(this.respawnTimer);
+            if (oldSec !== newSec && newSec > 0) sounds.playGem(); // 用音效提示倒计时
+
+            if (this.respawnTimer <= 0) {
+                this.respawnTimer = 0;
+            }
+            this.onUpdateStats(this.score, this.distance, this.speedMultiplier, this.player.lives, Math.ceil(this.respawnTimer));
+            return;
         }
         this.maxSpeedReached = Math.max(this.maxSpeedReached, this.speedMultiplier);
 
@@ -377,6 +410,15 @@ export class GameEngine {
                             y: (Math.random() - 0.5) * 35 * CONFIG.GLOBAL_SCALE
                         }, 1.5));
                     }
+                } else if (g.type === GemType.LIFE) {
+                    sounds.playSpecialGem();
+                    this.player.lives = Math.min(5, this.player.lives + 1); // 最多5条命
+                    for (let i = 0; i < 20; i++) {
+                        this.particles.push(new Particle(g.x, g.y, '#4ade80', {
+                            x: (Math.random() - 0.5) * 25 * CONFIG.GLOBAL_SCALE,
+                            y: (Math.random() - 0.5) * 25 * CONFIG.GLOBAL_SCALE
+                        }, 1.2));
+                    }
                 } else {
                     if (g.type === GemType.LARGE) sounds.playSpecialGem();
                     else sounds.playGem();
@@ -399,11 +441,28 @@ export class GameEngine {
         }
 
         if (dead) {
-            this.isRunning = false;
-            setTimeout(() => this.onGameOver(this.score, this.distance, this.maxSpeedReached), 800);
+            if (this.player.lives > 1) {
+                this.player.lives--;
+                this.triggerRespawn();
+                dead = false; // 拦截死亡，进入复活流程
+            } else {
+                this.isRunning = false;
+                setTimeout(() => this.onGameOver(this.score, this.distance, this.maxSpeedReached), 800);
+            }
         }
 
-        this.onUpdateStats(this.score, this.distance, this.speedMultiplier);
+        this.onUpdateStats(this.score, this.distance, this.speedMultiplier, this.player.lives, Math.ceil(this.respawnTimer));
+    }
+
+    private triggerRespawn() {
+        this.respawnTimer = 3.1; // 3秒倒计时
+        // 寻找最近的平台（位于玩家当前 x 后方的第一个平台）
+        const safetyPlatform = this.platforms.find(p => p.x + p.w > this.player.x) || this.platforms[0];
+        this.player.y = safetyPlatform.y - this.player.size;
+        this.player.vy = 0;
+        this.player.resetJump();
+        // 视角瞬间回正
+        this.cameraY = this.player.y - this.canvas.height * 0.55;
     }
 
     private shatterPlayer() {
@@ -445,6 +504,19 @@ export class GameEngine {
             ctx.font = `bold ${48 * CONFIG.GLOBAL_SCALE}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillText('游戏暂停', this.canvas.width / 2, this.canvas.height / 2);
+        }
+
+        if (this.respawnTimer > 0) {
+            ctx.fillStyle = 'white';
+            ctx.font = `black ${160 * CONFIG.GLOBAL_SCALE}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 30 * CONFIG.GLOBAL_SCALE;
+            ctx.shadowColor = 'rgba(255,165,0,0.8)';
+            ctx.fillText(Math.ceil(this.respawnTimer).toString(), this.canvas.width / 2, this.canvas.height * 0.45);
+            ctx.shadowBlur = 0;
+
+            ctx.font = `bold ${32 * CONFIG.GLOBAL_SCALE}px sans-serif`;
+            ctx.fillText('准备继续...', this.canvas.width / 2, this.canvas.height * 0.45 + 100 * CONFIG.GLOBAL_SCALE);
         }
     }
 

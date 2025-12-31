@@ -4,7 +4,13 @@ import { CONFIG } from './Config';
 export enum GemType {
     SMALL,
     LARGE,
-    SLOW
+    SLOW,
+    LIFE
+}
+
+export enum Difficulty {
+    EASY = 'EASY',
+    NORMAL = 'NORMAL'
 }
 
 export enum PlayerSkin {
@@ -36,14 +42,18 @@ export class Player {
     private hasReleasedSinceLastJump: boolean = true;
     public skin: PlayerSkin = PlayerSkin.DEFAULT;
     public mode: GameMode = GameMode.NORMAL;
+    public difficulty: Difficulty = Difficulty.NORMAL;
+    public lives: number = 1;
     public colorType: ColorType = ColorType.NONE;
     private animationFrame: number = 0;
 
-    constructor(startX: number, startY: number, skin: PlayerSkin = PlayerSkin.DEFAULT, mode: GameMode = GameMode.NORMAL) {
+    constructor(startX: number, startY: number, skin: PlayerSkin = PlayerSkin.DEFAULT, mode: GameMode = GameMode.NORMAL, difficulty: Difficulty = Difficulty.NORMAL) {
         this.x = startX;
         this.y = startY;
         this.skin = skin;
         this.mode = mode;
+        this.difficulty = difficulty;
+        this.lives = difficulty === Difficulty.EASY ? 3 : 1;
         this.updateSize();
     }
 
@@ -258,7 +268,7 @@ export class Gem {
 
     public get score(): number {
         if (this.type === GemType.LARGE) return 100;
-        if (this.type === GemType.SLOW) return 0;
+        if (this.type === GemType.SLOW || this.type === GemType.LIFE) return 0;
         return 20;
     }
 
@@ -296,6 +306,12 @@ export class Gem {
             ctx.moveTo(0, this.size);
             ctx.lineTo(-this.size, -this.size);
             ctx.lineTo(this.size, -this.size);
+        } else if (this.type === GemType.LIFE) {
+            // 绘制心形或十字架表示生命
+            const s = this.size;
+            ctx.moveTo(0, s / 2);
+            ctx.bezierCurveTo(-s, -s / 2, -s / 2, -s, 0, -s / 4);
+            ctx.bezierCurveTo(s / 2, -s, s, -s / 2, 0, s / 2);
         } else {
             ctx.moveTo(0, -this.size);
             ctx.lineTo(this.size, 0);
