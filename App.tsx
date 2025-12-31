@@ -313,6 +313,26 @@ const App: React.FC = () => {
     }
   };
 
+  const deleteUserAllScores = async (username: string) => {
+    if (!window.confirm(`确定要清除用户 "${username}" 的所有数据吗？\n这将抹除该用户在全模式、全难度下的所有历史战绩。`)) return;
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+        body: JSON.stringify({ action: 'DELETE_USER_SCORES', username })
+      });
+      if (res.ok) {
+        alert(`${username} 的所有数据已清除！`);
+        fetchAllScores();
+      } else {
+        const error = await res.json();
+        alert("操作失败: " + (error.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert("网络错误");
+    }
+  };
+
   const deleteScore = async (id: number) => {
     if (!window.confirm('确定要删除此条记录吗？')) return;
     try {
@@ -935,12 +955,21 @@ const App: React.FC = () => {
                       <td className="py-3 text-center opacity-60 font-mono text-[9px]">{s.mode}</td>
                       <td className="py-3 text-center opacity-40 text-[9px]">{new Date(s.timestamp).toLocaleDateString()}</td>
                       <td className="py-3 text-center">
-                        <button
-                          onClick={() => deleteScore(s.id)}
-                          className="bg-red-500/20 text-red-400 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition-all text-[10px] font-bold"
-                        >
-                          DELETE
-                        </button>
+                        <div className="flex justify-center gap-1">
+                          <button
+                            onClick={() => deleteScore(s.id)}
+                            className="bg-red-500/20 text-red-400 px-2 py-1 rounded hover:bg-red-500/40 transition-all text-[9px] font-bold"
+                          >
+                            删除此行
+                          </button>
+                          <button
+                            onClick={() => deleteUserAllScores(s.username)}
+                            className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition-all text-[9px] font-black shadow-lg"
+                            title="一键擦除该用户所有分类下的全部战绩"
+                          >
+                            清除该用户
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

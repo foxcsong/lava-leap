@@ -65,6 +65,18 @@ export const onRequest = async (context) => {
                 await db.prepare(query).run();
                 return new Response(JSON.stringify({ message: 'Cleanup successful' }), { status: 200 });
             }
+
+            if (action === 'DELETE_USER_SCORES') {
+                const { username } = await request.json();
+                if (!username) {
+                    return new Response(JSON.stringify({ error: 'Username required' }), { status: 400 });
+                }
+
+                // 物理删除该用户的所有记录（全模式全难度一站式清理）
+                await db.prepare('DELETE FROM scores WHERE TRIM(username) = TRIM(?)').bind(username).run();
+
+                return new Response(JSON.stringify({ message: `All scores for ${username} deleted` }), { status: 200 });
+            }
         }
 
         return new Response('Not Implemented', { status: 501 });
