@@ -27,7 +27,7 @@ const App: React.FC = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [rankType, setRankType] = useState<'score' | 'mileage'>('score');
-  const [rankFilterMode, setRankFilterMode] = useState<GameMode | 'ALL'>('ALL');
+  const [rankFilterMode, setRankFilterMode] = useState<GameMode>(GameMode.NORMAL);
   const [rankFilterDiff, setRankFilterDiff] = useState<Difficulty>(Difficulty.NORMAL);
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
   const [authError, setAuthError] = useState('');
@@ -222,7 +222,7 @@ const App: React.FC = () => {
     };
   }, [gameState, isPaused, gameMode]);
 
-  const fetchLeaderboard = async (type: 'score' | 'mileage', modeFilter?: GameMode | 'ALL', diffFilter?: Difficulty) => {
+  const fetchLeaderboard = async (type: 'score' | 'mileage', modeFilter?: GameMode, diffFilter?: Difficulty) => {
     try {
       const activeMode = modeFilter !== undefined ? modeFilter : rankFilterMode;
       const activeDiff = diffFilter !== undefined ? diffFilter : rankFilterDiff;
@@ -230,11 +230,7 @@ const App: React.FC = () => {
       setRankFilterMode(activeMode);
       setRankFilterDiff(activeDiff);
 
-      let url = `/api/scores?type=${type}`;
-      if (activeMode !== 'ALL') {
-        url += `&mode=${activeMode}`;
-      }
-      url += `&difficulty=${activeDiff}`;
+      let url = `/api/scores?type=${type}&mode=${activeMode}&difficulty=${activeDiff}`;
 
       const res = await fetch(url);
       const data = await res.json();
@@ -666,8 +662,24 @@ const App: React.FC = () => {
                 <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
               </div>
 
+              {/* 模式过滤标签 */}
+              <div className="flex gap-2 mb-4">
+                {[
+                  { id: GameMode.NORMAL, label: '普通模式' },
+                  { id: GameMode.COLOR_SHIFT, label: '变色模式' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => fetchLeaderboard(rankType, m.id as any, rankFilterDiff)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black border transition-all ${rankFilterMode === m.id ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
               {/* 难度过滤标签 */}
-              <div className="flex gap-2 mb-4 animate-in fade-in slide-in-from-top duration-300">
+              <div className="flex gap-2 mb-6 animate-in fade-in slide-in-from-top duration-300">
                 {[
                   { id: Difficulty.NORMAL, label: '普通难度' },
                   { id: Difficulty.EASY, label: '简单难度' },
@@ -681,23 +693,6 @@ const App: React.FC = () => {
                       }`}
                   >
                     {d.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 模式过滤标签 */}
-              <div className="flex gap-2 mb-6">
-                {[
-                  { id: 'ALL', label: '所有模式' },
-                  { id: GameMode.NORMAL, label: '普通模式' },
-                  { id: GameMode.COLOR_SHIFT, label: '变色模式' },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => fetchLeaderboard(rankType, m.id as any, rankFilterDiff)}
-                    className={`px-3 py-1 rounded-full text-[10px] font-black border transition-all ${rankFilterMode === m.id ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'border-white/10 text-slate-500 hover:border-white/30'}`}
-                  >
-                    {m.label}
                   </button>
                 ))}
               </div>
@@ -722,10 +717,15 @@ const App: React.FC = () => {
                         </td>
                         <td className="py-3 font-bold">{item.username}</td>
                         <td className="py-3 text-orange-400 font-mono">{rankType === 'score' ? Math.floor(item.score).toLocaleString() : Math.floor(item.mileage).toLocaleString() + 'm'}</td>
-                        <td className="py-3">
-                          <span className={`text-[8px] px-2 py-0.5 rounded border uppercase font-bold ${item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
-                            {item.mode === 'COLOR_SHIFT' ? '变色' : '普通'}
-                          </span>
+                        <td className="py-3 text-center">
+                          <div className="flex flex-col items-center">
+                            <span className={`text-[8px] px-2 py-0.5 rounded border uppercase font-black tracking-tighter ${item.mode === 1 || item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
+                              {item.mode === 1 || item.mode === 'COLOR_SHIFT' ? '变色模式' : '普通模式'}
+                            </span>
+                            <span className={`text-[7px] font-bold mt-0.5 italic ${item.difficulty === 'EASY' ? 'text-green-500' : 'text-slate-600'}`}>
+                              {item.difficulty === 'EASY' ? '简单难度' : '普通难度'}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}
