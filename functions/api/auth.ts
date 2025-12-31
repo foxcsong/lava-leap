@@ -13,10 +13,11 @@ export const onRequestPost = async (context) => {
             return new Response(JSON.stringify({ error: 'Username and password required' }), { status: 400 });
         }
 
-        // 1. 基本格式检查 (2-12位，不含特殊字符)
-        const nameRegex = /^[a-zA-Z0-9\u4e00-\u9fa5]{2,12}$/;
+        // 1. 广泛格式检查 (2-16位，支持多国语言、数字、常用符号及空格)
+        // \p{L} 匹配任意语言字母, \p{N} 匹配数字, \p{P} 匹配标点与符号
+        const nameRegex = /^[\p{L}\p{N}\p{P}\s]{2,16}$/u;
         if (!nameRegex.test(username)) {
-            return new Response(JSON.stringify({ error: '名字需为2-12位中英文或数字' }), { status: 400 });
+            return new Response(JSON.stringify({ error: '名字需为2-16位中外文字符、数字或符号' }), { status: 400 });
         }
 
         // 2. 敏感词简单过滤 (生产环境建议接入专业API，此处演示基础逻辑)

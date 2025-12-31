@@ -462,7 +462,12 @@ export class GameEngine {
         this.respawnTimer = 3.1; // 3秒倒计时
         // 寻找最近的平台（位于玩家当前 x 后方的第一个平台）
         const safetyPlatform = this.platforms.find(p => p.x + p.w > this.player.x) || this.platforms[0];
+
+        // 确保降落在平台正上方，且离开边缘一段距离（取平台宽度的 20% 位置，但至少 50px）
+        const safeMargin = Math.max(50 * CONFIG.GLOBAL_SCALE, safetyPlatform.w * 0.2);
+        this.player.x = safetyPlatform.x + safeMargin;
         this.player.y = safetyPlatform.y - this.player.size;
+
         this.player.vy = 0;
         this.player.resetJump();
         // 视角瞬间回正

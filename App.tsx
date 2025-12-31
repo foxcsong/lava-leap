@@ -536,29 +536,27 @@ const App: React.FC = () => {
                 ))}
               </div>
 
-              {/* 仅在普通模式下显示难度选择 */}
-              {gameMode === GameMode.NORMAL && (
-                <div className="mt-4 flex flex-col items-end gap-2 animate-in fade-in slide-in-from-right duration-500">
-                  <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-1">选择难度</span>
-                  <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 backdrop-blur-sm">
-                    {[
-                      { id: Difficulty.NORMAL, label: '普通' },
-                      { id: Difficulty.EASY, label: '简单 (3命)' },
-                    ].map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => setGameDifficulty(d.id)}
-                        className={`px-3 py-1.5 rounded-md text-[10px] font-black transition-all ${gameDifficulty === d.id
-                          ? 'bg-orange-600 text-white shadow-lg'
-                          : 'text-slate-400 hover:text-white'
-                          }`}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
+              {/* 仅在普通模式下显示难度选择 (v2.6.0 已向全模式开放) */}
+              <div className="mt-4 flex flex-col items-end gap-2 animate-in fade-in slide-in-from-right duration-500">
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-1">选择难度</span>
+                <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 backdrop-blur-sm">
+                  {[
+                    { id: Difficulty.NORMAL, label: '普通' },
+                    { id: Difficulty.EASY, label: '简单 (3命)' },
+                  ].map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => setGameDifficulty(d.id)}
+                      className={`px-3 py-1.5 rounded-md text-[10px] font-black transition-all ${gameDifficulty === d.id
+                        ? 'bg-orange-600 text-white shadow-lg'
+                        : 'text-slate-400 hover:text-white'
+                        }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* 主标题 */}
