@@ -465,7 +465,17 @@ export class GameEngine {
 
         // 确保降落在平台正上方，且离开边缘一段距离（取平台宽度的 20% 位置，但至少 50px）
         const safeMargin = Math.max(50 * CONFIG.GLOBAL_SCALE, safetyPlatform.w * 0.2);
-        this.player.x = safetyPlatform.x + safeMargin;
+
+        // 修复水平偏移问题：不改变角色的 screenX，而是平移整个世界来对齐
+        const targetX = this.canvas.width * 0.3;
+        const shiftX = targetX - (safetyPlatform.x + safeMargin);
+
+        this.platforms.forEach(p => p.x += shiftX);
+        this.gems.forEach(g => g.x += shiftX);
+        this.particles.forEach(p => p.x += shiftX);
+        this.lastX += shiftX;
+
+        this.player.x = targetX;
         this.player.y = safetyPlatform.y - this.player.size;
 
         this.player.vy = 0;
