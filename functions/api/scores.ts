@@ -12,16 +12,25 @@ export const onRequestGet = async (context) => {
         const orderBy = type === 'score' ? 'score' : 'mileage';
 
         // 使用子查询确保每个 username 只有最高记录出现在榜单上
-        // 兼容性解决：mode 可能存过 NULL, '', 'NORMAL', '0' (String/Number)
-        // 统一将这些情况映射为 '0'，将 difficulty NULL 映射为 'NORMAL'
+        // 通过 CASE 语句进行最强力的规范化：
+        // mode: NULL, '', 'NORMAL', '0', 0 均映射为 '0' (普通模式)
+        // mode: 'COLOR_SHIFT', '1', 1 均映射为 '1' (变色模式)
+        // difficulty: NULL, '', 'NORMAL' 均映射为 'NORMAL'
         query = `
       SELECT username, score, mileage, mode, difficulty
       FROM (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY username ORDER BY ${orderBy} DESC) as rn
         FROM scores
         ${mode || difficulty ? 'WHERE ' + [
-                mode ? "CAST(COALESCE(NULLIF(NULLIF(mode, ''), 'NORMAL'), '0') AS TEXT) = ?" : '',
-                difficulty ? "COALESCE(difficulty, 'NORMAL') = ?" : ''
+                mode ? `(CASE
+            WHEN mode IS NULL OR mode = '' OR mode = 'NORMAL' OR mode = '0' OR mode = 0 THEN '0'
+            WHEN mode = 'COLOR_SHIFT' OR mode = '1' OR mode = 1 THEN '1'
+            ELSE CAST(mode AS TEXT)
+          END) = ?` : '',
+                difficulty ? `(CASE
+            WHEN difficulty IS NULL OR difficulty = '' OR difficulty = 'NORMAL' THEN 'NORMAL'
+            ELSE difficulty
+          END) = ?` : ''
             ].filter(Boolean).join(' AND ') : ''}
       )
       WHERE rn = 1

@@ -719,8 +719,8 @@ const App: React.FC = () => {
                         <td className="py-3 text-orange-400 font-mono">{rankType === 'score' ? Math.floor(item.score).toLocaleString() : Math.floor(item.mileage).toLocaleString() + 'm'}</td>
                         <td className="py-3 text-center">
                           <div className="flex flex-col items-center">
-                            <span className={`text-[8px] px-2 py-0.5 rounded border uppercase font-black tracking-tighter ${item.mode === 1 || item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
-                              {item.mode === 1 || item.mode === 'COLOR_SHIFT' ? '变色模式' : '普通模式'}
+                            <span className={`text-[8px] px-2 py-0.5 rounded border uppercase font-black tracking-tighter ${item.mode == 1 || item.mode === 'COLOR_SHIFT' ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10' : 'border-slate-500/50 text-slate-400 bg-slate-500/10'}`}>
+                              {item.mode == 1 || item.mode === 'COLOR_SHIFT' ? '变色模式' : '普通模式'}
                             </span>
                             <span className={`text-[7px] font-bold mt-0.5 italic ${item.difficulty === 'EASY' ? 'text-green-500' : 'text-slate-600'}`}>
                               {item.difficulty === 'EASY' ? '简单难度' : '普通难度'}
