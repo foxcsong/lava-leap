@@ -11,26 +11,41 @@ export const onRequestGet = async (context) => {
         let params: any[] = [];
         const orderBy = type === 'score' ? 'score' : 'mileage';
 
+        // --- 参数预标准化 (JS 层处理) ---
+        let normalizedMode: string | null = null;
+        if (mode && mode !== 'ALL') {
+            // NORMAL, 0, '0' -> '0'
+            if (mode === 'NORMAL' || mode === '0' || mode === '0') {
+                normalizedMode = '0';
+            }
+            // COLOR_SHIFT, 1, '1' -> '1'
+            else if (mode === 'COLOR_SHIFT' || mode === '1') {
+                normalizedMode = '1';
+            }
+            else {
+                normalizedMode = mode;
+            }
+        }
+
+        let normalizedDiff: string | null = null;
+        if (difficulty && difficulty !== 'ALL') {
+            if (difficulty === 'NORMAL') normalizedDiff = 'NORMAL';
+            else if (difficulty === 'EASY') normalizedDiff = 'EASY';
+            else normalizedDiff = difficulty;
+        }
+
         // 使用子查询确保每个 username 只有最高记录出现在榜单上
-        // 通过 CASE 语句进行最强力的规范化：
-        // mode: NULL, '', 'NORMAL', '0', 0 均映射为 '0' (普通模式)
-        // mode: 'COLOR_SHIFT', '1', 1 均映射为 '1' (变色模式)
-        // difficulty: NULL, '', 'NORMAL' 均映射为 'NORMAL'
+        // SQL 层配合规范化判定：
+        //   对于 mode: 将 NULL / '' / 0 / 'NORMAL' 视为 '0'
+        //   对于 difficulty: 将 NULL / '' 视为 'NORMAL'
         query = `
       SELECT username, score, mileage, mode, difficulty
       FROM (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY username ORDER BY ${orderBy} DESC) as rn
         FROM scores
-        ${mode || difficulty ? 'WHERE ' + [
-                mode ? `(CASE
-            WHEN mode IS NULL OR mode = '' OR mode = 'NORMAL' OR mode = '0' OR mode = 0 THEN '0'
-            WHEN mode = 'COLOR_SHIFT' OR mode = '1' OR mode = 1 THEN '1'
-            ELSE CAST(mode AS TEXT)
-          END) = ?` : '',
-                difficulty ? `(CASE
-            WHEN difficulty IS NULL OR difficulty = '' OR difficulty = 'NORMAL' THEN 'NORMAL'
-            ELSE difficulty
-          END) = ?` : ''
+        ${normalizedMode || normalizedDiff ? 'WHERE ' + [
+                normalizedMode ? "(CASE WHEN mode IS NULL OR mode = '' OR mode = 'NORMAL' THEN '0' ELSE CAST(mode AS TEXT) END) = ?" : '',
+                normalizedDiff ? "COALESCE(NULLIF(difficulty, ''), 'NORMAL') = ?" : ''
             ].filter(Boolean).join(' AND ') : ''}
       )
       WHERE rn = 1
@@ -38,8 +53,8 @@ export const onRequestGet = async (context) => {
       LIMIT 50
     `;
 
-        if (mode) params.push(mode);
-        if (difficulty) params.push(difficulty);
+        if (normalizedMode) params.push(normalizedMode);
+        if (normalizedDiff) params.push(normalizedDiff);
 
         const { results } = await db.prepare(query).bind(...params).all();
         return new Response(JSON.stringify(results), { status: 200 });
