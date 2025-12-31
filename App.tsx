@@ -293,6 +293,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCleanupDuplicates = async () => {
+    if (!window.confirm("确定要清理全库重复记录吗？\n每个用户在同模式同难度下仅保留最高分记录。")) return;
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+        body: JSON.stringify({ action: 'CLEANUP_DUPLICATES' })
+      });
+      if (res.ok) {
+        alert("全库重复记录已清理！");
+        fetchAllScores();
+      } else {
+        const error = await res.json();
+        alert("清理失败: " + (error.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert("网络错误");
+    }
+  };
+
   const deleteScore = async (id: number) => {
     if (!window.confirm('确定要删除此条记录吗？')) return;
     try {
@@ -875,6 +895,13 @@ const App: React.FC = () => {
               >
                 <i className="fa-solid fa-wand-magic-sparkles"></i>
                 一键同步历史数据 (0.0 统一)
+              </button>
+              <button
+                onClick={handleCleanupDuplicates}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
+              >
+                <i className="fa-solid fa-broom"></i>
+                一键清理冗余记录 (每档唯一)
               </button>
               <button
                 onClick={fetchAllScores}

@@ -45,6 +45,26 @@ export const onRequest = async (context) => {
 
                 return new Response(JSON.stringify({ message: 'Migration successful' }), { status: 200 });
             }
+
+            if (action === 'CLEANUP_DUPLICATES') {
+                // 物理去重：每个用户在【每个模式+每个难度】下仅保留一条最高分记录
+                // 此逻辑会自动适配未来新增的任何模式
+                const query = `
+                    DELETE FROM scores 
+                    WHERE id NOT IN (
+                        SELECT id FROM (
+                            SELECT id, ROW_NUMBER() OVER (
+                                PARTITION BY username, mode, difficulty 
+                                ORDER BY score DESC, mileage DESC, timestamp DESC
+                            ) as rn
+                            FROM scores
+                        ) WHERE rn = 1
+                    )
+                `;
+
+                await db.prepare(query).run();
+                return new Response(JSON.stringify({ message: 'Cleanup successful' }), { status: 200 });
+            }
         }
 
         return new Response('Not Implemented', { status: 501 });
