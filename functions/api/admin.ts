@@ -53,7 +53,9 @@ export const onRequest = async (context) => {
         }
 
         if (method === 'POST') {
-            const { action } = await request.json();
+            const body = await request.json();
+            const { action } = body;
+
             if (action === 'MIGRATE') {
                 // 将所有 0.0, NULL, 空串等格式归一化为标准的 0 (Normal)
                 await db.prepare(`
@@ -73,7 +75,6 @@ export const onRequest = async (context) => {
 
             if (action === 'CLEANUP_DUPLICATES') {
                 // 物理去重：每个用户在【每个模式+每个难度】下仅保留一条最高分记录
-                // 此逻辑会自动适配未来新增的任何模式
                 const query = `
                     DELETE FROM scores 
                     WHERE id NOT IN (
@@ -92,7 +93,7 @@ export const onRequest = async (context) => {
             }
 
             if (action === 'DELETE_USER_SCORES') {
-                const { username } = await request.json();
+                const { username } = body;
                 if (!username) {
                     return new Response(JSON.stringify({ error: 'Username required' }), { status: 400 });
                 }
