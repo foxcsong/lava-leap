@@ -999,7 +999,12 @@ const App: React.FC = () => {
                         <span className="text-cyan-400">{s.score}</span> / <span className="text-yellow-500">{s.mileage}m</span>
                       </td>
                       <td className="py-3 text-center opacity-60 font-mono text-[9px]">{s.mode}</td>
-                      <td className="py-3 text-center opacity-40 text-[9px]">{new Date(s.timestamp).toLocaleDateString()}</td>
+                      <td className="py-3 text-center opacity-40 text-[9px] font-mono whitespace-nowrap">
+                        {new Date(s.timestamp).toLocaleString('zh-CN', {
+                          year: 'numeric', month: '2-digit', day: '2-digit',
+                          hour: '2-digit', minute: '2-digit', hour12: false
+                        }).replace(/\//g, '/')}
+                      </td>
                       <td className="py-3 text-center">
                         <div className="flex justify-center gap-1">
                           <button
