@@ -14,9 +14,34 @@ export const onRequest = async (context) => {
 
     try {
         if (method === 'GET') {
-            // 获取完整列表用于管理
-            const { results } = await db.prepare('SELECT * FROM scores ORDER BY timestamp DESC LIMIT 200').all();
-            return new Response(JSON.stringify(results), { status: 200 });
+            const page = parseInt(url.searchParams.get('page') || '1');
+            const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
+            const search = url.searchParams.get('search') || '';
+            const offset = (page - 1) * pageSize;
+
+            let query = 'SELECT * FROM scores';
+            let countQuery = 'SELECT COUNT(*) as total FROM scores';
+            let params: any[] = [];
+
+            if (search) {
+                const where = ' WHERE username LIKE ?';
+                query += where;
+                countQuery += where;
+                params.push(`%${search}%`);
+            }
+
+            query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+            const queryParams = [...params, pageSize, offset];
+
+            const { results } = await db.prepare(query).bind(...queryParams).all();
+            const { total } = await db.prepare(countQuery).bind(...params).first();
+
+            return new Response(JSON.stringify({
+                results,
+                total,
+                page,
+                pageSize
+            }), { status: 200 });
         }
 
         if (method === 'DELETE') {

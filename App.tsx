@@ -39,6 +39,10 @@ const App: React.FC = () => {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [allScores, setAllScores] = useState<any[]>([]);
   const [adminError, setAdminError] = useState('');
+  const [adminTotal, setAdminTotal] = useState(0);
+  const [adminPage, setAdminPage] = useState(1);
+  const [adminSearch, setAdminSearch] = useState('');
+  const adminPageSize = 50;
 
   const submitScore = async (finalScore: number, finalDistance: number) => {
     if (!currentUser) return; // 匿名玩家不记录成绩到数据库
@@ -255,14 +259,21 @@ const App: React.FC = () => {
     setTimeout(() => setAdminClickCount(0), 3000);
   };
 
-  const fetchAllScores = async () => {
+  const fetchAllScores = async (page: number = 1, search: string = adminSearch) => {
     try {
-      const res = await fetch('/api/admin', {
+      const url = new URL('/api/admin', window.location.origin);
+      url.searchParams.set('page', page.toString());
+      url.searchParams.set('pageSize', adminPageSize.toString());
+      if (search) url.searchParams.set('search', search);
+
+      const res = await fetch(url.toString(), {
         headers: { 'X-Admin-Key': adminKey }
       });
       if (res.ok) {
         const data = await res.json();
-        setAllScores(data);
+        setAllScores(data.results);
+        setAdminTotal(data.total);
+        setAdminPage(data.page);
         setShowAdminPanel(true);
         setShowAdminLogin(false);
       } else {
@@ -903,11 +914,11 @@ const App: React.FC = () => {
                 className="w-full bg-black border border-slate-700 rounded px-3 py-2 text-white mb-4 outline-none focus:border-red-500 font-mono text-sm"
                 value={adminKey}
                 onChange={(e) => setAdminKey(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchAllScores()}
+                onKeyDown={(e) => e.key === 'Enter' && fetchAllScores(1)}
               />
               {adminError && <div className="text-red-500 text-[10px] mb-2 text-center font-bold italic">{adminError}</div>}
               <div className="flex gap-2">
-                <button onClick={fetchAllScores} className="flex-1 bg-red-600 py-2 rounded font-bold text-white text-xs">执行</button>
+                <button onClick={() => fetchAllScores(1)} className="flex-1 bg-red-600 py-2 rounded font-bold text-white text-xs">执行</button>
                 <button onClick={() => setShowAdminLogin(false)} className="flex-1 bg-slate-800 py-2 rounded font-bold text-slate-400 text-xs text-center">取消</button>
               </div>
             </div>
@@ -927,28 +938,44 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            <div className="mb-4 flex gap-2">
-              <button
-                onClick={handleMigrateData}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
-              >
-                <i className="fa-solid fa-wand-magic-sparkles"></i>
-                一键同步历史数据 (0.0 统一)
-              </button>
-              <button
-                onClick={handleCleanupDuplicates}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
-              >
-                <i className="fa-solid fa-broom"></i>
-                一键清理冗余记录 (每档唯一)
-              </button>
-              <button
-                onClick={fetchAllScores}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
-              >
-                <i className="fa-solid fa-sync"></i>
-                刷新数据
-              </button>
+            <div className="mb-4 flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleMigrateData}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
+                >
+                  <i className="fa-solid fa-wand-magic-sparkles"></i>
+                  数据归一
+                </button>
+                <button
+                  onClick={handleCleanupDuplicates}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
+                >
+                  <i className="fa-solid fa-broom"></i>
+                  全库去重
+                </button>
+                <button
+                  onClick={() => fetchAllScores(1)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-colors"
+                >
+                  <i className="fa-solid fa-sync"></i>
+                  刷新列表
+                </button>
+              </div>
+
+              <div className="flex-1 max-w-xs relative">
+                <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input
+                  type="text"
+                  placeholder="按用户名搜索..."
+                  value={adminSearch}
+                  onChange={(e) => {
+                    setAdminSearch(e.target.value);
+                    fetchAllScores(1, e.target.value);
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-xs text-white focus:border-orange-500 outline-none transition-all"
+                />
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -994,6 +1021,32 @@ const App: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* 分页控制 */}
+            <div className="mt-4 flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+              <div>
+                共 <span className="text-white">{adminTotal}</span> 条记录
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => fetchAllScores(adminPage - 1)}
+                  disabled={adminPage <= 1}
+                  className="hover:text-white disabled:opacity-20 transition-colors flex items-center gap-1"
+                >
+                  <i className="fa-solid fa-chevron-left"></i> 上一页
+                </button>
+                <div className="bg-white/5 px-3 py-1 rounded">
+                  第 <span className="text-orange-500">{adminPage}</span> / {Math.ceil(adminTotal / adminPageSize) || 1} 页
+                </div>
+                <button
+                  onClick={() => fetchAllScores(adminPage + 1)}
+                  disabled={adminPage >= Math.ceil(adminTotal / adminPageSize)}
+                  className="hover:text-white disabled:opacity-20 transition-colors flex items-center gap-1"
+                >
+                  下一页 <i className="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
             </div>
           </div>
         )}
